@@ -9,7 +9,7 @@ xsens_data = textscan(fileID,'%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f
 fclose(fileID);
 xsens_sample_time_fine = xsens_data{2};
 xsens_accX = xsens_data{3};xsens_accY = xsens_data{4};xsens_accZ = xsens_data{5};
-xsens_F_accX = xsens_data{6};xsens_F_accY = xsens_data{7};xsens_F_accZ = xsens_data{8};
+xsens_F_accX = xsens_data{6};xsens_F_accY = xsens_data{7};xsens_F_accZ = xsens_data{8};                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
 xsens_gyroX = xsens_data{9};xsens_gyroY = xsens_data{10};xsens_gyroZ = xsens_data{11};
 xsens_roll = xsens_data{12};xsens_pitch = xsens_data{13};xsens_yaw = xsens_data{14};
 xsens_lat = xsens_data{15};xsens_lon = xsens_data{16};xsens_alt = xsens_data{17};
@@ -43,16 +43,17 @@ xsens_pos_by_vel(:,3) = cumtrapz(xsens_sample_time_fine,xsens_vel_data(:,3));
 %%%%%%%%%%%%%%%%%%%%% 高精度RTK数据的提取 %%%%%%%%%%%%%%%%%%%%%
 rtk_name = 'RTK\3.rtk';
 % rtk格式：
+% 注意：旋转角为角度
 % "%.2f"%time+' '+"%.7f"%lat+' '+"%.7f"%lon+' '+"%.2f"%alt+' '
 %         	+"%.3f"%yaw+' '+"%.3f"%pitch+' '+"%.3f"%roll+' '
 %         	+"%.3f"%vE+' '+"%.3f"%vN+' '+"%.3f"%vU+'\n'
 fileID = fopen([vehicular_file_path, rtk_name]);
 rtk_data = textscan(fileID,'%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f');
 rtk_time_tag = rtk_data{1};
-rtk_lat = rtk_data{2};rtk_lon = rtk_data{3};
+rtk_lat = rtk_data{2};rtk_lon = rtk_data{3};rtk_alt = rtk_data{4};
 rtk_yaw = rtk_data{5};rtk_pitch = rtk_data{6};rtk_roll = rtk_data{7};
-rtk_velX = rtk_data{8};rtk_velY = rtk_data{9};rtk_velZ = rtk_data{10};
-rtk_vel = [rtk_velX rtk_velY rtk_velZ];
+rtk_vE = rtk_data{8};rtk_vN = rtk_data{9};rtk_vU = rtk_data{10};
+rtk_velENU = [rtk_vE rtk_vN rtk_vU];
 fclose(fileID);
 
 %%%%%%%%%%%%%%%%%%%%%% laneto数据的提取 %%%%%%%%%%%%%%%%%%%%%
@@ -71,72 +72,131 @@ fclose(fileID);
 single_gps_name = 'GPS\3.gps';
 fileID=fopen([vehicular_file_path, single_gps_name]);
 single_gps_data = textscan(fileID,'%f\t%f\t%f\t%f');    
-single_gps_time_stamp = single_gps_data{1};
+single_gps_time_tag = single_gps_data{1};
 single_gps_lat = single_gps_data{2};
 single_gps_lon = single_gps_data{3};
+single_gps_alt = single_gps_data{4};
 fclose(fileID);
 
 %% 时间对齐处理
+GPS_LEAPSECOND = 18;       %2017年gps时钟相比UTC时间快了18s
 UTC_start_time = datenum('2017-08-20 00:00:00','yyyy-mm-dd HH:MM:SS');
 % xsens_start_time_raw = datenum('2017-08-22 12:47:03','yyyy-mm-dd HH:MM:SS');
 xsens_start_time_raw = datenum('2017-08-22 12:32:50','yyyy-mm-dd HH:MM:SS');    %MT上读到的时刻是12:32:50
-xsens_start_time_utc_std = (xsens_start_time_raw-UTC_start_time)*24*3600;   %把时间转为从UTC周日00:00:00至今秒数
-xsens_time_tag_utc_std = (xsens_sample_time_fine + xsens_start_time_utc_std);
-disp(['xsens和rtk的起始时刻差(xsens-rtk):',num2str(xsens_start_time_utc_std - rtk_time_tag(1)),'s']);
-disp(['xsens和single-gps的起始时刻差(xsens-single_gps):',num2str(xsens_start_time_utc_std - single_gps_time_stamp(1)),'s']);
+xsens_start_time = (xsens_start_time_raw-UTC_start_time)*24*3600;   %把时间转为从UTC周日00:00:00至今秒数
+% 补偿上leap second
+xsens_start_time = xsens_start_time + GPS_LEAPSECOND;
+single_gps_time_tag = single_gps_time_tag + GPS_LEAPSECOND;
+xsens_time_tag = (xsens_sample_time_fine + xsens_start_time);
+disp(['xsens和rtk的起始时刻差(xsens-rtk):',num2str(xsens_start_time - rtk_time_tag(1)),'s']);
+disp(['xsens和single-gps的起始时刻差(xsens-single_gps):',num2str(xsens_start_time - single_gps_time_tag(1)),'s']);
 
 
 %% 对rtk和gps数据进行操作
-rtk_acc(:,1) = diff(rtk_velX) * (1/dt);
-rtk_acc(:,2) = diff(rtk_velY) * (1/dt);
-rtk_acc(:,3) = diff(rtk_velZ) * (1/dt);
+rtk_acc(:,1) = diff(rtk_vE) * (1/dt);
+rtk_acc(:,2) = diff(rtk_vN) * (1/dt);
+rtk_acc(:,3) = diff(rtk_vU) * (1/dt);
 
 single_gps_lat1 = single_gps_lat(1:end-1);
 single_gps_lat2 = single_gps_lat(2:end);
 single_gps_lon1 = single_gps_lon(1:end-1);
 single_gps_lon2 = single_gps_lon(2:end);
-[arclen,az] = distance(single_gps_lat1,single_gps_lon1,single_gps_lat2,single_gps_lon2,referenceEllipsoid('wgs84'));
+[arclen,az] = distance(single_gps_lat1,single_gps_lon1,single_gps_lat2,single_gps_lon2,referenceEllipsoid('wgs84'));    
+az = deg2rad(az);   %distance输出的az是角度制
+down_180_index = find(az<=180);
+up_180_index = find(az>180);
+single_gps_velENU = zeros(length(single_gps_lat1),3);
+single_gps_velENU(down_180_index,1) = arclen(down_180_index).*sin(az(down_180_index)); %vel_E的部分速度
+single_gps_velENU(down_180_index,2) = arclen(down_180_index).*cos(az(down_180_index)); %vel_N的部分速度
+single_gps_velENU(up_180_index,1) = arclen(up_180_index).*(-sin(az(up_180_index)-deg2rad(180))); %vel_E的部分速度
+single_gps_velENU(up_180_index,2) = arclen(up_180_index).*(-cos(az(up_180_index)-deg2rad(180))); %vel_E的部分速度
+
+
+%% 数据保存，方便主程序调用
+ENU2NED = NED2ENU^-1;
+%%%%%%%%%%%%%%% 车载rtk数据作为参考 %%%%%%%%%%%%%%%
+% 保存为Navego的形式，速度为NED
+ref_rtk.t = rtk_time_tag;
+ref_rtk.lat = deg2rad(rtk_lat);     % Navego需要弧度形式的
+ref_rtk.lon = deg2rad(rtk_lon);
+ref_rtk.h = rtk_alt;
+ref_rtk.vel = (ENU2NED*rtk_velENU')';   % Navego中的速度为NED形式的
+ref_rtk.roll = deg2rad(rtk_roll);
+ref_rtk.pitch = deg2rad(rtk_pitch);
+ref_rtk.yaw = deg2rad(rtk_yaw);
+ref_rtk.kn = length(rtk_time_tag);
+ref_rtk.DCMnb = zeros(length(rtk_yaw),9);
+for i=1:length(rtk_yaw)
+    temp = angle2dcm(rtk_roll(i),rtk_pitch(i),rtk_yaw(i),'YXZ'); % 这里不太确定旋转的顺序是否正确
+    ref_rtk.DCMnb(i,:) = reshape(ENU2NED*temp,[1,9]);
+end
+ref_rtk.freq = 1/mean(diff(rtk_time_tag));                 % 采样频率（车载高精度惯导的rtk实际是100hz）
+save('ref_rtk.mat','ref_rtk');
+%%%%%%%%%%%%%%% 低精度GPS数据 %%%%%%%%%%%%%%%
+% 保存为Navego的形式，速度为NED
+KT2MS = 0.514444;   % knot to m/s
+single_gps.t = single_gps_time_tag;
+single_gps.lat = deg2rad(single_gps_lat);     % Navego需要弧度形式的
+single_gps.lon = deg2rad(single_gps_lon);
+single_gps.h = single_gps_alt;
+single_gps.vel = (ENU2NED*single_gps_velENU')';     % navego的速度方向为NED
+single_gps.stdm = [5, 5, 10];                 % 直接用的Navego的demo数据，GPS positions standard deviations [lat lon h] (meters)
+single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % 直接用的Navego的demo数据，GPS velocities standard deviations [Vn Ve Vd] (meters/s)
+single_gps.larm = zeros(3,1);                 %  直接用的Navego的demo数据，GPS lever arm [X Y Z] (meters)
+single_gps.freq = 1/mean(diff(single_gps_time_tag));
+save('single_gps.mat','single_gps');
+%%%%%%%%%%%%%%% XSNES数据 %%%%%%%%%%%%%%%
+xsens_imu.t = xsens_time_tag;
+xsens_imu.fb = xsens_acc_data;
+xsens_imu.wb = xsens_gyro_data;
+save('xsens_imu.mat','xsens_imu');
 
 
 %% plot data
-% figure;
-% plot(xsens_pos_by_vel(:,1),xsens_pos_by_vel(:,2),'.');
-% figure;
-% plot(xsens_lon,xsens_lat,'.');
 figure;
 subplot(211);
-plot(rtk_time_tag,rtk_velX,'.');
+plot(rtk_time_tag,rtk_vE,'.');
 hold on;
-plot(xsens_time_tag_utc_std,xsens_vel_data(:,1),'.');
-title('x-axis vel');legend('rtk','xsensVel');
+plot(xsens_time_tag,xsens_vel_data(:,1),'.');
+plot(single_gps_time_tag(1:end-1),single_gps_velENU(:,1),'.:');
+title('x-axis vel');legend('rtk','xsensVel','singleGps');
 subplot(212);
-plot(rtk_time_tag,rtk_velY,'.');
+plot(rtk_time_tag,rtk_vN,'.');
 hold on;
-plot(xsens_time_tag_utc_std,xsens_vel_data(:,2),'.');
-title('y-axis vel');legend('rtk','xsensVel');
+plot(xsens_time_tag,xsens_vel_data(:,2),'.');
+plot(single_gps_time_tag(1:end-1),single_gps_velENU(:,2),'.:');
+title('y-axis vel');legend('rtk','xsensVel','singleGps');
 
 figure;
 subplot(211);
 plot(rtk_time_tag,rtk_yaw,'.');
 hold on;
-plot(xsens_time_tag_utc_std,xsens_yaw,'.');plot(laneto_time_tag,laneto_yaw,'.');
+plot(xsens_time_tag,xsens_yaw,'.');plot(laneto_time_tag,laneto_yaw,'.');
 title('yaw');legend('rtk','xsens','laneto');
 subplot(212);
 plot(rtk_time_tag,rtk_pitch,'.');
 hold on;
-plot(xsens_time_tag_utc_std,xsens_pitch,'.');plot(laneto_time_tag,laneto_pitch,'.');
+plot(xsens_time_tag,xsens_pitch,'.');plot(laneto_time_tag,laneto_pitch,'.');
 title('pitch');legend('rtk','xsens','laneto');
 
 figure;
 subplot(211);
 plot(rtk_time_tag(1:end-1),rtk_acc(:,1)); 
 hold on;
-plot(xsens_time_tag_utc_std,xsens_free_acc_data(:,1));
-title('x-axis free-acc');legend('rtk','xsens free');
+plot(xsens_time_tag,xsens_free_acc_data(:,1));
+plot(xsens_time_tag,xsens_acc_data(:,1));
+title('x-axis free-acc');legend('rtk','xsens free','xsens raw');
+subplot(212);
+plot(rtk_time_tag(1:end-1),rtk_acc(:,2)); 
+hold on;
+plot(xsens_time_tag,xsens_free_acc_data(:,2));
+plot(xsens_time_tag,xsens_acc_data(:,2));
+title('y-axis free-acc');legend('rtk','xsens free','xsens raw');
 
 figure;
 subplot(211);
 plot(single_gps_lat,single_gps_lon); 
 hold on;
 plot(xsens_lat,xsens_lon);
-title('location');legend('single-gps','xsens');
+% plot(xsens_pos_by_vel(:,1),xsens_pos_by_vel(:,2));
+title('location');legend('single-gps','xsens+gps');
