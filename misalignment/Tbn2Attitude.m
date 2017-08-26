@@ -1,5 +1,4 @@
-function [theta,gama,phi] = Tbn2Attitude(strapdown)
-
+function [att_output] = Tbn2Attitude(strapdown)
     theta = asin(strapdown(2,3));
     gama = atan(-strapdown(1,3)/strapdown(3,3));
     if strapdown(3,3)<0
@@ -33,7 +32,9 @@ function [theta,gama,phi] = Tbn2Attitude(strapdown)
             phi = phi + 2*pi;
         end
     end
-
+    att_output(1) = theta;
+    att_output(2) = gama;
+    att_output(3) = phi;
 % 
 % yaw= atan(-Cnb(1,2)/Cnb(2,2));
 % if yaw<0&Cnb(2,2)>0

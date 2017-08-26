@@ -41,9 +41,9 @@ Longitude(1) = Longitude0;
 Rn=Re*(1+f*(sin(Latitude0))^2);
 Rm=Re*(1-2*f+3*f*(sin(Latitude0))^2);
 %速度
-Ve0 = 0.0;
-Vn0 = 0.0;
-Vu0 = 0.0;
+Ve0 = -0.042490;
+Vn0 = -0.005601;
+Vu0 = -0.043728;
 Ve(1) = 0.0; %速度解算输出
 Vn(1) = 0.0;
 Vu(1) = 0.0;
@@ -60,9 +60,24 @@ Cen(3,3)=sin(Latitude0);
 
 %初始对准
 W_ibb = [0;0;0];         %读取初始W_ibb
-data0=xlsread('D:\momenta文件夹\2017-8-11跑车数据\Mti-G-710标定后的数据\MT_2017-08-11-21h04-000_processed.csv');
-% data0=xlsread('C:\Users\Sophia\Documents\XSENS\csv文件\MT_07701495-20170808-1200.csv');
+file_path = 'F:\Momenta_Intern\Data\MTi-G-710数据\4-vehicle_test\8-22-vehicle-test\';
+xsens_file_name = 'MT_2017-08-22-19h29-000';
+fileID=fopen([file_path, xsens_file_name,'.txt']);
+data0 = textscan(fileID,'%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f','HeaderLines',7);
+fclose(fileID);
+xsens_accX = data0{3};xsens_accY = data0{4};xsens_accZ = data0{5};
+xsens_gyroX = data0{9};xsens_gyroY = data0{10};xsens_gyroZ = data0{11};
+IX = find(isnan(xsens_accY) | isnan(xsens_accZ));
+xsens_accX(IX) = [];xsens_accY(IX) = [];xsens_accZ(IX) = [];
+xsens_gyroX(IX) = [];xsens_gyroY(IX) = [];xsens_gyroZ(IX) = [];
+xsens_acc_data = [xsens_accX xsens_accY xsens_accZ];
+xsens_gyro_data = [xsens_gyroX xsens_gyroY xsens_gyroZ];
+% 设置静止时间
+STATIC_TIME_LENGTH = 30;    % 30秒的静止
+SAMPLE_FREQ = 100;          % 采样频率100hz
+discount_times = int32(length(xsens_accX)/SAMPLE_FREQ/STATIC_TIME_LENGTH);
 
+% data0=xlsread('C:\Users\Sophia\Documents\XSENS\csv文件\MT_07701495-20170808-1200.csv');
 % W_ibb(1)=mean(data0(:,2))*rad;
 % W_ibb(2)=mean(data0(:,3))*rad;
 % W_ibb(3)=mean(data0(:,4))*rad;
@@ -74,8 +89,8 @@ data0=xlsread('D:\momenta文件夹\2017-8-11跑车数据\Mti-G-710标定后的数据\MT_2017-
 % fbdata = fb';
 % load wbib.mat;
 % wbib = wbib';
-fbdata = data0(:,5:7)*g0;
-wbib = data0(:,2:4)*rad;
+fbdata = xsens_acc_data*g0;
+wbib = xsens_gyro_data*rad;
 DataLen = length(fbdata);
 W_ibb(1) = mean(wbib(:,1));
 W_ibb(2) = mean(wbib(:,2));
@@ -159,7 +174,7 @@ dot_vn = fn + [0;0;g0];
 w=2;
 f=2;
 
-for i=1:(length(wbib)-1)/2
+for i=1:(length(wbib)-1)/discount_times
      for m=1:2  
     %%更新速度
     %input wbib按列存
@@ -208,7 +223,7 @@ for i=1:(DataLen-3)
     z=Z(:,i);
     if(mod(i,2)==1)
 %         att=fscanf(fid1,'%f%f%f\n',[3,1]);
-        T=a2Tbn(att((i+1)/2,:));
+        T=a2Tbn(att((i+1)/discount_times,:));
         F=[0,2*W_ien(3,1),0,-g0,0,T(1,1),T(1,2),0,0,0;
         -2*W_ien(3,1),0,g0,0,0,T(2,1),T(2,2),0,0,0;
         0,-1/Rm,0,W_ien(3,1),-W_ien(2,1),0,0,T(1,1),T(1,2),T(1,3);
@@ -254,3 +269,18 @@ Terr = [1 -phi_u phi_n;phi_u 1 -phi_e; -phi_n phi_e 1];
 disp('卡尔曼滤波增益阵');
 disp(K);
 resdisp('Initial align attitudes (arcdeg)',[phi_e*180/pi,phi_n*180/pi,phi_u*180/pi]);
+
+%%%%%% 输出初始对准的旋转结果 %%%%%%
+[r1,r2,r3] = dcm2angle(Tbn,'YXZ');
+disp(['dcm2angle解算结果 r1=',num2str(rad2deg(r1)),', r2=',num2str(rad2deg(r2)),', r3=',num2str(rad2deg(r3))]);
+att_out = Tbn2att(Tbn);
+disp(['Tbn2att解算结果 r1=',num2str(rad2deg(att_out(1))),', r2=',num2str(rad2deg(att_out(2))),', r3=',num2str(rad2deg(att_out(3)))]);
+Tbn_by_xsens = angle2dcm(deg2rad(-5.723626),deg2rad(0.330706),deg2rad(158.743622),'XYZ');   % 8-22-19h29的初始角度
+acc_rotation_by_calculate = (Tbn*xsens_acc_data')';
+acc_rotation_by_xsens_read = (Tbn_by_xsens*xsens_acc_data')';
+
+
+
+
+
+
