@@ -135,9 +135,6 @@ load('./my_test/ref_rtk.mat');
 % ini_align: 1x3 initial attitude at t(1).
 % ini_align_err: 1x3 initial attitude errors at t(1).
 
-%% ADIS16488 IMU error profile
-
-
 %% MTi-G-710 IMU error profile
 MTiG710.arw      = 0.3  .* ones(1,3);     % Angle random walks [X Y Z] (deg/root-hour)
 MTiG710.vrw      = 0.029.* ones(1,3);     % Velocity random walks [X Y Z] (m/s/root-hour)
@@ -185,7 +182,7 @@ single_gps.freq = 1;                          % GPS operation frequency (Hz)
 
 fprintf('NaveGo: loading GPS data... \n') 
 load('./my_test/single_gps.mat');
-single_gps = gps_err_profile(ref_rtk.lat(1), ref_rtk.h(1), single_gps); % Transform GPS manufacturer error units to SI units.
+single_gps = gps_err_profile(single_gps.lat(1), single_gps.h(1), single_gps); % Transform GPS manufacturer error units to SI units.
 %% SIMULATE GPS
 
 
@@ -265,7 +262,7 @@ if (strcmp(PLOT,'ON'))
     figure;
     plot3(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D, ref_rtk.h)
     hold on
-    plot3(imu1_e.lon.*R2D, imu1_e.lat.*R2D, imu1_e.h)
+    plot3(imu1_e.lon.*R2D, imu1_e.lat.*R2D, imu1_e.h,'.')
     legend('ref','imu estimation');
     plot3(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, ref_rtk.h(1), 'or', 'MarkerSize', 10, 'LineWidth', 2)
     plot3(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, imu1_e.h(1), 'or', 'MarkerSize', 10, 'LineWidth', 2)
@@ -276,6 +273,19 @@ if (strcmp(PLOT,'ON'))
     ylabel('Latitude [deg.]')
     zlabel('Altitude [m]')
     
+    % 2D-TRAJECTORY
+    figure;
+    plot(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D)
+    hold on
+    plot(imu1_e.lon.*R2D, imu1_e.lat.*R2D,'.')
+    legend('ref','imu estimation');
+    plot(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
+    plot(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
+    axis tight
+    grid on; 
+    title('TRAJECTORY')
+    xlabel('Longitude [deg.]')
+    ylabel('Latitude [deg.]')
     
     % ATTITUDE
     figure;

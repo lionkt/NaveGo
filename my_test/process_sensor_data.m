@@ -80,7 +80,7 @@ single_gps_alt = single_gps_data{4};
 fclose(fileID);
 
 %% 时间对齐处理
-GPS_LEAPSECOND = 18;       %2017年gps时钟相比UTC时间快了18s
+GPS_LEAPSECOND = 16;       %2017年gps时钟相比UTC时间快了18s
 UTC_start_time = datenum('2017-08-20 00:00:00','yyyy-mm-dd HH:MM:SS');
 % xsens_start_time_raw = datenum('2017-08-22 12:47:03','yyyy-mm-dd HH:MM:SS');
 xsens_start_time_raw = datenum('2017-08-22 12:32:50','yyyy-mm-dd HH:MM:SS');    %MT上读到的时刻是12:32:50
