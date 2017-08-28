@@ -158,6 +158,7 @@ save('single_gps.mat','single_gps');
 % xsens_imu.fb = (ENU2NED*xsens_att_calib*xsens_acc_data')';          % 将xsens校回。根据acc_gen文件的内容，加速度输出应该为NED下的值
 xsens_imu.t = xsens_time_tag;
 xsens_imu.fb = (ENU2NED*xsens_acc_data')';          % 根据acc_gen文件的内容，加速度输出应该为NED下的值
+xsens_imu.fb(:,3) = - xsens_imu.fb(:,3);            % 由于xsens静止时Z轴敏感的加速度为+g，为了和Navego配合，改成-g
 xsens_imu.wb = xsens_gyro_data;
 save('xsens_imu.mat','xsens_imu');
 

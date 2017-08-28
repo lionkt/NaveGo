@@ -162,7 +162,7 @@ xsens_imu.t = t;
 xsens_imu.fb = fb;
 xsens_imu.wb = wb;
 xsens_imu.ini_align_err = [1 1 5] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
-xsens_imu.ini_align = [5.828975 -1.104427 -91.761559] .* D2R;  % Initial attitude align at t(1) (radians).
+xsens_imu.ini_align = [-5.828975 1.104427 91.761559] .* D2R;  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
 
 %% Garmin 5-18 Hz GPS error profile
 
