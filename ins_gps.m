@@ -231,6 +231,8 @@ for j = 2:Mg
         
         [qua_n, DCMbn_n, euler] = att_update(wb_corrected, DCMbn, qua, ...
             omega_ie_N, omega_en_N, dti, att_mode);
+%         [qua_n, DCMbn_n, euler] = my_att_update(wb_corrected, fb_corrected, DCMbn, qua, ...
+%             omega_ie_N, omega_en_N, dti, att_mode);         % crown add 6-axes fusion attitude update method
         roll_e(i) = euler(1);
         pitch_e(i)= euler(2);
         yaw_e(i)  = euler(3);
