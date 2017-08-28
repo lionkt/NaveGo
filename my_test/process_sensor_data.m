@@ -24,7 +24,7 @@ xsens_lat(IX) = [];xsens_lon(IX) = [];xsens_alt(IX) = [];
 xsens_roll(IX) = [];xsens_pitch(IX) = [];xsens_yaw(IX) = [];
 xsens_velX(IX) = [];xsens_velY(IX) = [];xsens_velZ(IX) = [];
 xsens_acc_data = [xsens_accX xsens_accY xsens_accZ];
-xsens_gyro_data = [xsens_gyroX xsens_gyroY xsens_gyroZ];
+xsens_gyro_data = [xsens_gyroX xsens_gyroY xsens_gyroZ];     
 xsens_att = [xsens_roll xsens_pitch xsens_yaw];
 xsens_free_acc_data = [xsens_F_accX xsens_F_accY xsens_F_accZ];
 xsens_vel_data = [xsens_velX xsens_velY xsens_velZ];
@@ -103,7 +103,7 @@ single_gps_lat2 = single_gps_lat(2:end);
 single_gps_lon1 = single_gps_lon(1:end-1);
 single_gps_lon2 = single_gps_lon(2:end);
 [arclen,az] = distance(single_gps_lat1,single_gps_lon1,single_gps_lat2,single_gps_lon2,referenceEllipsoid('wgs84'));    
-az = deg2rad(az);   %distance输出的az是角度制
+az = deg2rad(az);   %distance输出的az是角度制，转成弧度制
 down_180_index = find(az<=180);
 up_180_index = find(az>180);
 single_gps_velENU = zeros(length(single_gps_lat1),3);
@@ -122,13 +122,17 @@ ref_rtk.lat = deg2rad(rtk_lat);     % Navego需要弧度形式的
 ref_rtk.lon = deg2rad(rtk_lon);
 ref_rtk.h = rtk_alt;
 ref_rtk.vel = (ENU2NED*rtk_velENU')';   % Navego中的速度为NED形式的
-ref_rtk.roll = deg2rad(rtk_roll);
-ref_rtk.pitch = deg2rad(rtk_pitch);
-ref_rtk.yaw = deg2rad(rtk_yaw);
+% ref_rtk.roll = deg2rad(rtk_roll);
+% ref_rtk.pitch = deg2rad(rtk_pitch);
+% ref_rtk.yaw = deg2rad(rtk_yaw);
+temp_rtk_att = (ENU2NED*(deg2rad([rtk_roll rtk_pitch rtk_yaw]))')';
+ref_rtk.roll = temp_rtk_att(:,1);
+ref_rtk.pitch = temp_rtk_att(:,2);
+ref_rtk.yaw = temp_rtk_att(:,3);
 ref_rtk.kn = length(rtk_time_tag);
 ref_rtk.DCMnb = zeros(length(rtk_yaw),9);
 for i=1:length(rtk_yaw)
-    temp = angle2dcm(rtk_roll(i),rtk_pitch(i),rtk_yaw(i),'YXZ'); % 这里不太确定旋转的顺序是否正确
+    temp = angle2dcm(deg2rad(rtk_roll(i)),deg2rad(rtk_pitch(i)),deg2rad(rtk_yaw(i)),'YXZ'); % 这里不太确定旋转的顺序是否正确
     ref_rtk.DCMnb(i,:) = reshape(ENU2NED*temp,[1,9]);
 end
 ref_rtk.freq = 1/mean(diff(rtk_time_tag));                 % 采样频率（车载高精度惯导的rtk实际是100hz）
@@ -159,7 +163,7 @@ save('single_gps.mat','single_gps');
 xsens_imu.t = xsens_time_tag;
 xsens_imu.fb = (ENU2NED*xsens_acc_data')';          % 根据acc_gen文件的内容，加速度输出应该为NED下的值
 xsens_imu.fb(:,3) = - xsens_imu.fb(:,3);            % 由于xsens静止时Z轴敏感的加速度为+g，为了和Navego配合，改成-g
-xsens_imu.wb = xsens_gyro_data;
+xsens_imu.wb = xsens_gyro_data;                     % 陀螺仪不需要再转换，因为解算的时候用的就是b系下的
 save('xsens_imu.mat','xsens_imu');
 
 %% plot data
@@ -177,21 +181,29 @@ plot(xsens_time_tag,xsens_vel_data(:,2),'.');
 plot(single_gps_time_tag(1:end-1),single_gps_velENU(:,2),'.:');
 title('y-axis vel');legend('rtk','xsensVel','singleGps');
 
+%%%%%%%% 绘制姿态数据 %%%%%%%%]
+% xsens_att_calib_start = 1;
+% xsens_att_calib_end = 10;
+% xsens_att_calib = mean(xsens_att(xsens_att_calib_start:xsens_att_calib_end,:));
+% xsens_att_calib = deg2rad(xsens_att_calib);
+% xsens_att_calib = angle2dcm(-xsens_att_calib(1),-xsens_att_calib(2),-xsens_att_calib(3),'XYZ');     % 8-22日测试中，xsens的X轴对着车头
+% temp_xsens_att = xsens_att;
+% temp_xsens_att = (xsens_att_calib*temp_xsens_att')';
 figure;
 subplot(311);
 plot(rtk_time_tag,rtk_yaw,'.');
 hold on;
-plot(xsens_time_tag,xsens_yaw,'.');plot(laneto_time_tag,laneto_yaw,'.');
+plot(xsens_time_tag,-xsens_att(:,3),'.');plot(laneto_time_tag,laneto_yaw,'.');
 title('yaw');legend('rtk','xsens','laneto');
 subplot(312);
 plot(rtk_time_tag,rtk_pitch,'.');
 hold on;
-plot(xsens_time_tag,xsens_pitch,'.');plot(laneto_time_tag,laneto_pitch,'.');
+plot(xsens_time_tag,-xsens_att(:,2),'.');plot(laneto_time_tag,laneto_pitch,'.');
 title('pitch');legend('rtk','xsens','laneto');
 subplot(313);
 plot(rtk_time_tag,rtk_roll,'.');
 hold on;
-plot(xsens_time_tag,xsens_roll,'.');plot(laneto_time_tag,laneto_roll,'.');
+plot(xsens_time_tag,-xsens_att(:,1),'.');plot(laneto_time_tag,laneto_roll,'.');
 title('roll');legend('rtk','xsens','laneto');
 
 
@@ -216,3 +228,45 @@ hold on;
 plot(xsens_lat,xsens_lon);
 % plot(xsens_pos_by_vel(:,1),xsens_pos_by_vel(:,2));
 title('location');legend('single-gps','xsens+gps');
+
+%%%%%%%% 绘制传送给Navego 的数据 %%%%%%%%
+figure;
+subplot(211);
+plot(ref_rtk.t,ref_rtk.vel(:,1));
+hold on;
+plot(single_gps.t, single_gps.vel(:,1));
+title('to Navego north-speed');legend('rtk','single_gps');
+subplot(212);
+plot(ref_rtk.t,ref_rtk.vel(:,2));
+hold on;
+plot(single_gps.t, single_gps.vel(:,2));
+title('to Navego east-speed');legend('rtk','single_gps');
+
+figure;
+subplot(211);
+plot(ref_rtk.t,ref_rtk.lat);
+hold on;
+plot(single_gps.t, single_gps.lat);
+title('to Navego lat');legend('rtk','single_gps');
+subplot(212);
+plot(ref_rtk.t,ref_rtk.lon);
+hold on;
+plot(single_gps.t, single_gps.lon);
+title('to Navego lon');legend('rtk','single_gps');
+
+figure;
+subplot(311);
+plot(ref_rtk.t, ref_rtk.roll);
+title('to Navego roll');legend('rtk');
+subplot(312);
+plot(ref_rtk.t, ref_rtk.pitch);
+title('to Navego pitch');legend('rtk');
+subplot(313);
+plot(ref_rtk.t, ref_rtk.yaw);
+hold on;
+plot(single_gps.t,-az,'.');
+title('to Navego yaw');legend('rtk','single gps');
+
+
+
+
