@@ -152,19 +152,35 @@ ref_rtk.freq = 1/mean(diff(rtk_time_tag));                 % ²ÉÑùÆµÂÊ£¨³µÔØ¸ß¾«¶
 save('ref_rtk.mat','ref_rtk');
 %%%%%%%%%%%%%%% µÍ¾«¶ÈGPSÊı¾İ %%%%%%%%%%%%%%%
 % ±£´æÎªNavegoµÄĞÎÊ½£¬ËÙ¶ÈÎªNED
-limit_down = 1; limit_up = length(single_gps_velENU);    % ÓÉÓÚµÍ¾«¶ÈgpsµÄvelÊÇ²î·ÖËã³öÀ´µÄ£¬ËùÒÔ³¤¶ÈºÍÔ­À´²»Ò»ÖÂ
+% limit_down = 1; limit_up = length(single_gps_velENU);    % ÓÉÓÚµÍ¾«¶ÈgpsµÄvelÊÇ²î·ÖËã³öÀ´µÄ£¬ËùÒÔ³¤¶ÈºÍÔ­À´²»Ò»ÖÂ
+% KT2MS = 0.514444;   % knot to m/s
+% single_gps.t = single_gps_time_tag(limit_down:limit_up);
+% single_gps.lat = deg2rad(single_gps_lat(limit_down:limit_up));     % NavegoĞèÒª»¡¶ÈĞÎÊ½µÄ
+% single_gps.lon = deg2rad(single_gps_lon(limit_down:limit_up));
+% single_gps.h = single_gps_alt(limit_down:limit_up);
+% single_gps.vel = (ENU2NED*single_gps_velENU')';     % navegoµÄËÙ¶È·½ÏòÎªNED
+% single_gps.vel = single_gps.vel(limit_down:limit_up,:);
+% single_gps.stdm = [5, 5, 10];                 % Ö±½ÓÓÃµÄNavegoµÄdemoÊı¾İ£¬GPS positions standard deviations [lat lon h] (meters)
+% single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % Ö±½ÓÓÃµÄNavegoµÄdemoÊı¾İ£¬GPS velocities standard deviations [Vn Ve Vd] (meters/s)
+% single_gps.larm = zeros(3,1);                 %  Ö±½ÓÓÃµÄNavegoµÄdemoÊı¾İ£¬GPS lever arm [X Y Z] (meters)
+% single_gps.freq = 1/mean(diff(single_gps_time_tag));
+% save('single_gps.mat','single_gps');
+
+% ÓÃrtkµÄÊı¾İÎ±ÔìµÍ¾«¶Ègps£¬²âÊÔ½Ç¶È½âËã
+RTK_SAMPLE_FERQUENCY = 100;
 KT2MS = 0.514444;   % knot to m/s
-single_gps.t = single_gps_time_tag(limit_down:limit_up);
-single_gps.lat = deg2rad(single_gps_lat(limit_down:limit_up));     % NavegoĞèÒª»¡¶ÈĞÎÊ½µÄ
-single_gps.lon = deg2rad(single_gps_lon(limit_down:limit_up));
-single_gps.h = single_gps_alt(limit_down:limit_up);
-single_gps.vel = (ENU2NED*single_gps_velENU')';     % navegoµÄËÙ¶È·½ÏòÎªNED
-single_gps.vel = single_gps.vel(limit_down:limit_up,:);
+single_gps.t = ref_rtk.t(1:RTK_SAMPLE_FERQUENCY:end);
+single_gps.lat = ref_rtk.lat(1:RTK_SAMPLE_FERQUENCY:end);
+single_gps.lon = ref_rtk.lon(1:RTK_SAMPLE_FERQUENCY:end);
+single_gps.h = ref_rtk.h(1:RTK_SAMPLE_FERQUENCY:end);
+single_gps.vel = ref_rtk.vel(1:RTK_SAMPLE_FERQUENCY:end,:);
 single_gps.stdm = [5, 5, 10];                 % Ö±½ÓÓÃµÄNavegoµÄdemoÊı¾İ£¬GPS positions standard deviations [lat lon h] (meters)
 single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % Ö±½ÓÓÃµÄNavegoµÄdemoÊı¾İ£¬GPS velocities standard deviations [Vn Ve Vd] (meters/s)
 single_gps.larm = zeros(3,1);                 %  Ö±½ÓÓÃµÄNavegoµÄdemoÊı¾İ£¬GPS lever arm [X Y Z] (meters)
 single_gps.freq = 1/mean(diff(single_gps_time_tag));
 save('single_gps.mat','single_gps');
+
+
 %%%%%%%%%%%%%%% XSNESÊı¾İ %%%%%%%%%%%%%%%
 % ¸ù¾İxsensÊä³öµÄ³¯Ïò£¬½«imuĞ£»Øµ¼º½Ïµ
 % xsens_att_calib_start = 1;

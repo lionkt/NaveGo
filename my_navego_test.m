@@ -158,7 +158,7 @@ xsens_imu = imu_err_profile(MTiG710, dt);      % Transform IMU manufacturer erro
 xsens_imu.t = t;
 xsens_imu.fb = fb;
 xsens_imu.wb = wb;
-xsens_imu.ini_align_err = [5.828975 -1.104427 -91.761559] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
+xsens_imu.ini_align_err = -[5.828975 -1.104427 -91.761559] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
 xsens_imu.ini_align = [ref_rtk.roll(1) ref_rtk.pitch(1) ref_rtk.yaw(1)];  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
 % xsens_imu.ini_align_err = [1 1 5] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
 % xsens_imu.ini_align = [5.828975 -1.104427 -91.761559] .* D2R;  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
@@ -177,7 +177,7 @@ xsens_imu.ini_align = [ref_rtk.roll(1) ref_rtk.pitch(1) ref_rtk.yaw(1)];  % Init
 %      larm: 3x1 lever arm (x-right, y-fwd, z-down) (m).
 %      freq: 1x1 sampling frequency (Hz).
 
-single_gps.stdm = [5, 5, 10];                 % GPS positions standard deviations [lat lon h] (meters)
+single_gps.stdm = [1, 1, 1];                 % GPS positions standard deviations [lat lon h] (meters)
 single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % GPS velocities standard deviations [Vn Ve Vd] (meters/s)
 single_gps.larm = zeros(3,1);                 % GPS lever arm [X Y Z] (meters)
 single_gps.freq = 1;                          % GPS operation frequency (Hz)
@@ -288,7 +288,11 @@ if (strcmp(PLOT,'ON'))
     hold on
     plot(imu1_e.lon.*R2D, imu1_e.lat.*R2D,'.')
     plot(single_gps.lon.*R2D,single_gps.lat.*R2D,'o');
-    legend('ref','imu estimation','singleGps');
+    %%%%%%% 在gps信号到来的位置，加入速度偏置修正，防止imu被gps拉的不连续 %%%%%%%
+%     compare_time_seq = [single_gps.t(1): 1/xsens_imu.freq: single_gps.t(1)+1/xsens_imu.freq*(length(imu1_e.t)-1)]';
+%     IXX = find(abs(imu1_e.t-compare_time_seq)<= 1/xsens_imu.freq);
+%     plot(imu1_e.lon(IXX).*R2D, imu1_e.lat(IXX).*R2D,'.')
+    legend('ref','imu estimation','singleGps','imu-estimation(GPS comes)');
     plot(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
     plot(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
     axis tight
@@ -296,6 +300,7 @@ if (strcmp(PLOT,'ON'))
     title('TRAJECTORY')
     xlabel('Longitude [deg.]')
     ylabel('Latitude [deg.]')
+    
     
     % ATTITUDE
     figure;
