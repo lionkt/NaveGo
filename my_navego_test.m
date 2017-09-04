@@ -177,7 +177,7 @@ xsens_imu.ini_align = [ref_rtk.roll(1) ref_rtk.pitch(1) ref_rtk.yaw(1)];  % Init
 %      larm: 3x1 lever arm (x-right, y-fwd, z-down) (m).
 %      freq: 1x1 sampling frequency (Hz).
 
-single_gps.stdm = [1, 1, 1];                 % GPS positions standard deviations [lat lon h] (meters)
+single_gps.stdm = [5, 5, 10];                 % GPS positions standard deviations [lat lon h] (meters)
 single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % GPS velocities standard deviations [Vn Ve Vd] (meters/s)
 single_gps.larm = zeros(3,1);                 % GPS lever arm [X Y Z] (meters)
 single_gps.freq = 1;                          % GPS operation frequency (Hz)
