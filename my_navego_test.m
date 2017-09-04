@@ -158,8 +158,10 @@ xsens_imu = imu_err_profile(MTiG710, dt);      % Transform IMU manufacturer erro
 xsens_imu.t = t;
 xsens_imu.fb = fb;
 xsens_imu.wb = wb;
-xsens_imu.ini_align_err = [1 1 5] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
-xsens_imu.ini_align = -[5.828975 -1.104427 -91.761559] .* D2R;  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
+xsens_imu.ini_align_err = [5.828975 -1.104427 -91.761559] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
+xsens_imu.ini_align = [ref_rtk.roll(1) ref_rtk.pitch(1) ref_rtk.yaw(1)];  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
+% xsens_imu.ini_align_err = [1 1 5] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
+% xsens_imu.ini_align = [5.828975 -1.104427 -91.761559] .* D2R;  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
 
 %% Garmin 5-18 Hz GPS error profile
 
@@ -182,7 +184,8 @@ single_gps.freq = 1;                          % GPS operation frequency (Hz)
 
 fprintf('NaveGo: loading GPS data... \n') 
 load('./my_test/single_gps.mat');
-single_gps = gps_err_profile(single_gps.lat(1), single_gps.h(1), single_gps); % Transform GPS manufacturer error units to SI units.
+% single_gps = gps_err_profile(single_gps.lat(1), single_gps.h(1), single_gps); % Transform GPS manufacturer error units to SI units.
+single_gps = gps_err_profile(ref_rtk.lat(1), ref_rtk.h(1), single_gps); % Transform GPS manufacturer error units to SI units.
 %% SIMULATE GPS
 
 
@@ -252,6 +255,12 @@ fprintf('\nNaveGo: navigation time is %.2f minutes or %.2f seconds. \n', (to/60)
 
 print_rmse (imu1_ref, gps_ref, ref_1, ref_g, 'INS/GPS IMU1');
 
+%% 存储attitude数据，方便对比
+imu_e_time_for_save = imu1_e.t;
+imu_e_att_for_save = [imu1_e.roll, imu1_e.pitch, imu1_e.yaw];
+save('./calculation_data/imu_e_time','imu_e_time_for_save');
+save('./calculation_data/imu_e_att','imu_e_att_for_save');
+
 %% PLOT
 
 if (strcmp(PLOT,'ON'))
@@ -262,7 +271,7 @@ if (strcmp(PLOT,'ON'))
     figure;
     plot3(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D, ref_rtk.h)
     hold on
-    plot3(imu1_e.lon.*R2D, imu1_e.lat.*R2D, imu1_e.h,'.')
+    plot3(imu1_e.lon.*R2D, imu1_e.lat.*R2D, imu1_e.h,'.')    
     legend('ref','imu estimation');
     plot3(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, ref_rtk.h(1), 'or', 'MarkerSize', 10, 'LineWidth', 2)
     plot3(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, imu1_e.h(1), 'or', 'MarkerSize', 10, 'LineWidth', 2)
@@ -278,7 +287,8 @@ if (strcmp(PLOT,'ON'))
     plot(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D)
     hold on
     plot(imu1_e.lon.*R2D, imu1_e.lat.*R2D,'.')
-    legend('ref','imu estimation');
+    plot(single_gps.lon.*R2D,single_gps.lat.*R2D,'o');
+    legend('ref','imu estimation','singleGps');
     plot(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
     plot(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
     axis tight

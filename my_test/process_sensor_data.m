@@ -79,6 +79,19 @@ single_gps_lon = single_gps_data{3};
 single_gps_alt = single_gps_data{4};
 fclose(fileID);
 
+%%%%%%%%%%%%%%%%%%%%%% 高精度惯导数据的提取 %%%%%%%%%%%%%%%%%%%%%
+good_imu_name = 'RTK\3.imu';
+fileID=fopen([vehicular_file_path, good_imu_name]);
+good_imu_data = textscan(fileID,'%f\t%f\t%f\t%f\t%f\t%f\t%f');    
+good_imu_time_tag = good_imu_data{1};
+good_imu_gyroX = good_imu_data{2};      % 高精度惯导的陀螺仪输出为 rad/s
+good_imu_gyroY = good_imu_data{3};
+good_imu_gyroZ = good_imu_data{4};
+good_imu_accX = good_imu_data{5};
+good_imu_accY = good_imu_data{6};
+good_imu_accZ = good_imu_data{7};
+fclose(fileID);
+
 %% 时间对齐处理
 GPS_LEAPSECOND = 16;       %2017年gps时钟相比UTC时间快了18s
 UTC_start_time = datenum('2017-08-20 00:00:00','yyyy-mm-dd HH:MM:SS');
@@ -161,8 +174,9 @@ save('single_gps.mat','single_gps');
 % xsens_att_calib = angle2dcm(-xsens_att_calib(1),-xsens_att_calib(2),-xsens_att_calib(3),'XYZ');     % 8-22日测试中，xsens的X轴对着车头
 % xsens_imu.fb = (ENU2NED*xsens_att_calib*xsens_acc_data')';          % 将xsens校回。根据acc_gen文件的内容，加速度输出应该为NED下的值
 xsens_imu.t = xsens_time_tag;
-xsens_imu.fb = (ENU2NED*xsens_acc_data')';          % 根据acc_gen文件的内容，加速度输出应该为NED下的值
-xsens_imu.fb(:,3) = - xsens_imu.fb(:,3);            % 由于xsens静止时Z轴敏感的加速度为+g，为了和Navego配合，改成-g
+% xsens_imu.fb = (ENU2NED*xsens_acc_data')';          
+xsens_imu.fb = xsens_acc_data;
+xsens_imu.fb(:,3) = xsens_imu.fb(:,3);            % 由于xsens静止时Z轴敏感的加速度为+g，Navego中也是以+g为标准
 xsens_imu.wb = xsens_gyro_data;                     % 陀螺仪不需要再转换，因为解算的时候用的就是b系下的
 save('xsens_imu.mat','xsens_imu');
 
@@ -181,7 +195,7 @@ plot(xsens_time_tag,xsens_vel_data(:,2),'.');
 plot(single_gps_time_tag(1:end-1),single_gps_velENU(:,2),'.:');
 title('y-axis vel');legend('rtk','xsensVel','singleGps');
 
-%%%%%%%% 绘制姿态数据 %%%%%%%%]
+%%%%%%%% 绘制姿态数据 %%%%%%%%
 % xsens_att_calib_start = 1;
 % xsens_att_calib_end = 10;
 % xsens_att_calib = mean(xsens_att(xsens_att_calib_start:xsens_att_calib_end,:));
@@ -189,24 +203,33 @@ title('y-axis vel');legend('rtk','xsensVel','singleGps');
 % xsens_att_calib = angle2dcm(-xsens_att_calib(1),-xsens_att_calib(2),-xsens_att_calib(3),'XYZ');     % 8-22日测试中，xsens的X轴对着车头
 % temp_xsens_att = xsens_att;
 % temp_xsens_att = (xsens_att_calib*temp_xsens_att')';
+imu_e_time_tag = load('../calculation_data/imu_e_time.mat');         % 读取Navego解算得到的imu估计量时间戳
+imu_e_att = load('../calculation_data/imu_e_att.mat');              % 读取Navego解算得到的imu姿态角
+imu_e_time_tag = imu_e_time_tag.imu_e_time_for_save;
+imu_e_att = imu_e_att.imu_e_att_for_save;
+imu_e_att = rad2deg(imu_e_att);
+
 figure;
 subplot(311);
 plot(rtk_time_tag,rtk_yaw,'.');
 hold on;
 plot(xsens_time_tag,-xsens_att(:,3),'.');plot(laneto_time_tag,laneto_yaw,'.');
-title('yaw');legend('rtk','xsens','laneto');
+plot(imu_e_time_tag,imu_e_att(:,3),'.');         % Navego解算得到的imu姿态角
+title('yaw');legend('rtk','xsens','laneto','Navego-calculation');
 subplot(312);
 plot(rtk_time_tag,rtk_pitch,'.');
 hold on;
 plot(xsens_time_tag,-xsens_att(:,2),'.');plot(laneto_time_tag,laneto_pitch,'.');
-title('pitch');legend('rtk','xsens','laneto');
+plot(imu_e_time_tag,imu_e_att(:,2),'.');         % Navego解算得到的imu姿态角
+title('pitch');legend('rtk','xsens','laneto','Navego-calculation');
 subplot(313);
 plot(rtk_time_tag,rtk_roll,'.');
 hold on;
 plot(xsens_time_tag,-xsens_att(:,1),'.');plot(laneto_time_tag,laneto_roll,'.');
-title('roll');legend('rtk','xsens','laneto');
+plot(imu_e_time_tag,imu_e_att(:,1),'.');         % Navego解算得到的imu姿态角
+title('roll');legend('rtk','xsens','laneto','Navego-calculation');
 
-
+%%%%%%%% 绘制加速度数据 %%%%%%%%
 figure;
 subplot(211);
 plot(rtk_time_tag(1:end-1),rtk_acc(:,1)); 
@@ -221,13 +244,14 @@ plot(xsens_time_tag,xsens_free_acc_data(:,2));
 plot(xsens_time_tag,xsens_acc_data(:,2));
 title('y-axis free-acc');legend('rtk','xsens free','xsens raw');
 
+%%%%%%%% 绘制位置数据 %%%%%%%%
 figure;
 subplot(211);
 plot(single_gps_lat,single_gps_lon); 
 hold on;
 plot(xsens_lat,xsens_lon);
 % plot(xsens_pos_by_vel(:,1),xsens_pos_by_vel(:,2));
-title('location');legend('single-gps','xsens+gps');
+title('location');legend('single-gps','navego:xsens+gps');
 
 %%%%%%%% 绘制传送给Navego 的数据 %%%%%%%%
 figure;
