@@ -202,6 +202,7 @@ Pp(1,:) = reshape(S.Pp, 1, 441);
 B(1,:)  = [gb_fix', ab_fix', gb_drift', ab_drift'];
 
 i = 1;
+last_time_comp = -1;    %crown add for compensation
 
 % GPS clock is the master clock
 for j = 2:Mg

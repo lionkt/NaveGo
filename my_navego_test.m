@@ -139,7 +139,8 @@ load('./my_test/ref_rtk.mat');
 MTiG710.arw      = 0.3  .* ones(1,3);     % Angle random walks [X Y Z] (deg/root-hour)
 MTiG710.vrw      = 0.029.* ones(1,3);     % Velocity random walks [X Y Z] (m/s/root-hour)
 MTiG710.gb_fix   = 0.2  .* ones(1,3);     % Gyro static biases [X Y Z] (deg/s)
-MTiG710.ab_fix   = 16   .* ones(1,3);     % Acc static biases [X Y Z] (mg)
+% MTiG710.ab_fix   = 16   .* ones(1,3);     % Acc static biases [X Y Z] (mg)
+MTiG710.ab_fix   = [6, 6, 10];     % Acc static biases [X Y Z] (mg)
 MTiG710.gb_drift = 6.5/3600  .* ones(1,3);% Gyro dynamic biases [X Y Z] (deg/s)
 MTiG710.ab_drift = 0.1  .* ones(1,3);     % Acc dynamic biases [X Y Z] (mg)
 MTiG710.gb_corr  = 100  .* ones(1,3);     % Gyro correlation times [X Y Z] (seconds)
@@ -159,9 +160,9 @@ xsens_imu.t = t;
 xsens_imu.fb = fb;
 xsens_imu.wb = wb;
 % xsens_imu.ini_align_err = -[5.828975 -1.104427 -91.761559] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
-xsens_imu.ini_align = [ref_rtk.roll(1) ref_rtk.pitch(1) ref_rtk.yaw(1)];  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
+% xsens_imu.ini_align = [ref_rtk.roll(1) ref_rtk.pitch(1) ref_rtk.yaw(1)];  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
 xsens_imu.ini_align_err = [1 1 5] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
-% xsens_imu.ini_align = [5.828975 -1.104427 -91.761559] .* D2R;  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
+xsens_imu.ini_align = -[5.828975 -1.104427 -91.761559] .* D2R;  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
 
 %% Garmin 5-18 Hz GPS error profile
 
@@ -284,22 +285,38 @@ if (strcmp(PLOT,'ON'))
     
     % 2D-TRAJECTORY
     figure;
-    plot(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D)
+    mstruct = defaultm('mercator');
+    mstruct.origin = [39.999374 116.340673 41];
+    mstruct = defaultm(mstruct);
+    [xxx,yyy] = mfwdtran(mstruct,ref_rtk.lat,ref_rtk.lon);
+    plot(xxx, yyy)
+%     plot(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D)
     hold on
-    plot(imu1_e.lon.*R2D, imu1_e.lat.*R2D,'.')
-    plot(single_gps.lon.*R2D,single_gps.lat.*R2D,'o');
+    [xxx,yyy] = mfwdtran(mstruct,imu1_e.lat,imu1_e.lon);
+    plot(xxx, yyy,'.')
+%     plot(imu1_e.lon.*R2D, imu1_e.lat.*R2D,'.')
+    [xxx,yyy] = mfwdtran(mstruct,single_gps.lat,single_gps.lon);
+    plot(xxx, yyy,'o')
+%     plot(single_gps.lon.*R2D,single_gps.lat.*R2D,'o');
     %%%%%%% 在gps信号到来的位置，加入速度偏置修正，防止imu被gps拉的不连续 %%%%%%%
     IXX = find_nears_time(imu1_e.t, single_gps.t);
     
-    plot(imu1_e.lon(IXX).*R2D, imu1_e.lat(IXX).*R2D,'d')
+    [xxx,yyy] = mfwdtran(mstruct,imu1_e.lat(IXX),imu1_e.lon(IXX));
+    plot(xxx, yyy,'d')
+%     plot(imu1_e.lon(IXX).*R2D, imu1_e.lat(IXX).*R2D,'d')
     legend('ref','imu estimation','singleGps','imu-estimation(GPS comes)');
-    plot(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
-    plot(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
+    [xxx,yyy] = mfwdtran(mstruct,ref_rtk.lat(1),ref_rtk.lon(1));
+    plot(xxx, yyy, 'or', 'MarkerSize', 10, 'LineWidth', 2)
+    [xxx,yyy] = mfwdtran(mstruct,imu1_e.lat(1),imu1_e.lon(1));
+    plot(xxx, yyy, 'or', 'MarkerSize', 10, 'LineWidth', 2)
+%     plot(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
+%     plot(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
     axis tight
+    axis equal
     grid on; 
     title('TRAJECTORY')
-    xlabel('Longitude [deg.]')
-    ylabel('Latitude [deg.]')
+    xlabel('x-axis')
+    ylabel('y-axis')
     
     
     % ATTITUDE

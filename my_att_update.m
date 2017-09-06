@@ -22,8 +22,8 @@ function [ qua_n, DCMbn_n, euler ] = my_att_update( wb, fb, DCMbn, qua, omega_ie
 if nargin < 7, att_mode  = 'quaternion'; end
 
 %% 根据6轴融合的方法，更新姿态
-Ki = 0.01;     % PID控制器的增益
-Kp = 0.1;   % PID控制器的增益
+Ki = 0.005;     % PID控制器的增益
+Kp = 0.05;   % PID控制器的增益
 exInt = 0.0;eyInt = 0.0;ezInt = 0.0;
 ax = fb(1);ay = fb(2);az = fb(3);
 gx = wb(1);gy = wb(2);gz = wb(3);
