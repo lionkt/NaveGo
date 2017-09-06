@@ -158,9 +158,9 @@ xsens_imu = imu_err_profile(MTiG710, dt);      % Transform IMU manufacturer erro
 xsens_imu.t = t;
 xsens_imu.fb = fb;
 xsens_imu.wb = wb;
-xsens_imu.ini_align_err = -[5.828975 -1.104427 -91.761559] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
+% xsens_imu.ini_align_err = -[5.828975 -1.104427 -91.761559] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
 xsens_imu.ini_align = [ref_rtk.roll(1) ref_rtk.pitch(1) ref_rtk.yaw(1)];  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
-% xsens_imu.ini_align_err = [1 1 5] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
+xsens_imu.ini_align_err = [1 1 5] .* D2R;      % Initial attitude align errors for matrix P in Kalman filter, [roll pitch yaw] (radians)  
 % xsens_imu.ini_align = [5.828975 -1.104427 -91.761559] .* D2R;  % Initial attitude align at t(1) (radians). 这个数据直接从XSENS给出的attitude读出来
 
 %% Garmin 5-18 Hz GPS error profile
@@ -289,9 +289,9 @@ if (strcmp(PLOT,'ON'))
     plot(imu1_e.lon.*R2D, imu1_e.lat.*R2D,'.')
     plot(single_gps.lon.*R2D,single_gps.lat.*R2D,'o');
     %%%%%%% 在gps信号到来的位置，加入速度偏置修正，防止imu被gps拉的不连续 %%%%%%%
-%     compare_time_seq = [single_gps.t(1): 1/xsens_imu.freq: single_gps.t(1)+1/xsens_imu.freq*(length(imu1_e.t)-1)]';
-%     IXX = find(abs(imu1_e.t-compare_time_seq)<= 1/xsens_imu.freq);
-%     plot(imu1_e.lon(IXX).*R2D, imu1_e.lat(IXX).*R2D,'.')
+    IXX = find_nears_time(imu1_e.t, single_gps.t);
+    
+    plot(imu1_e.lon(IXX).*R2D, imu1_e.lat(IXX).*R2D,'d')
     legend('ref','imu estimation','singleGps','imu-estimation(GPS comes)');
     plot(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
     plot(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)

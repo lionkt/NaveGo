@@ -22,6 +22,7 @@ for k=1:length(gps_time_tag)
         if(i==length(imu_time_tag))
             break;
         end
+        i = i+1;
     end
 end
 

@@ -120,10 +120,10 @@ az = deg2rad(az);   %distance输出的az是角度制，转成弧度制
 down_180_index = find(az<=180);
 up_180_index = find(az>180);
 single_gps_velENU = zeros(length(single_gps_lat1),3);
-single_gps_velENU(down_180_index,1) = arclen(down_180_index).*sin(az(down_180_index)); %vel_E的部分速度
-single_gps_velENU(down_180_index,2) = arclen(down_180_index).*cos(az(down_180_index)); %vel_N的部分速度
-single_gps_velENU(up_180_index,1) = arclen(up_180_index).*(-sin(az(up_180_index)-deg2rad(180))); %vel_E的部分速度
-single_gps_velENU(up_180_index,2) = arclen(up_180_index).*(-cos(az(up_180_index)-deg2rad(180))); %vel_E的部分速度
+single_gps_velENU(down_180_index,1) = arclen(down_180_index).*sin(az(down_180_index))/1; %vel_E的部分速度
+single_gps_velENU(down_180_index,2) = arclen(down_180_index).*cos(az(down_180_index))/1; %vel_N的部分速度
+single_gps_velENU(up_180_index,1) = arclen(up_180_index).*(-sin(az(up_180_index)-deg2rad(180)))/1; %vel_E的部分速度
+single_gps_velENU(up_180_index,2) = arclen(up_180_index).*(-cos(az(up_180_index)-deg2rad(180)))/1; %vel_E的部分速度
 
 
 %% 数据保存，方便主程序调用
