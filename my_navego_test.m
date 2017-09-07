@@ -492,7 +492,7 @@ if (strcmp(PLOT,'ON'))
     title('LATITUDE ERROR');
     
     subplot(312)
-    plot(gps_ref.t, LON2M_GR.*(gps_ref.lon - gps_ref.lon), '-c')
+    plot(gps_ref.t, LON2M_GR.*(gps_ref.lon - ref_g.lon), '-c')
     hold on
     plot(imu1_ref.t, LON2M.*(imu1_ref.lon - ref_1.lon), '-b')
     hold on
@@ -503,7 +503,7 @@ if (strcmp(PLOT,'ON'))
     title('LONGITUDE ERROR');
     
     subplot(313)
-    plot(gps_ref.t, (gps_ref.h - gps_ref.h), '-c')
+    plot(gps_ref.t, (gps_ref.h - ref_g.h), '-c')
     hold on
     plot(imu1_ref.t, (imu1_ref.h - ref_1.h), '-b')
     hold on
