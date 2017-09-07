@@ -184,9 +184,21 @@ lon_e    = zeros (Mi,1);
 lat_e(1) = double(gps.lat(1));
 lon_e(1) = double(gps.lon(1));
 
-DCMnb = euler2dcm([roll_e(1); pitch_e(1); yaw_e(1);]);
+% 原始的姿态矩阵初始化
+DCMnb = euler2dcm([roll_e(1); pitch_e(1); yaw_e(1);]);    
 DCMbn = DCMnb';
 qua   = euler2qua([roll_e(1) pitch_e(1) yaw_e(1)]);
+
+% crown change，更改了Navego的初始DCM阵
+% NED2ENU = [0,1,0;
+%            1,0,0;
+%            0,0,-1];
+% ENU2NED = NED2ENU^-1;
+% DCMbn = angle2dcm(roll_e(1),pitch_e(1),yaw_e(1),'XYZ'); %xsens的角度是在ENU系下测的
+% DCMbn = ENU2NED*DCMbn;      %转到NED系下
+% DCMnb = DCMbn';
+% qua = dcm2quat(DCMbn);
+% qua = qua(:);   % 原始的是列向量
 
 % Initialize Kalman filter matrices
 S.R  = diag([gps.stdv, gps.stdm].^2);

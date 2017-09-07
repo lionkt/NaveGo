@@ -111,7 +111,7 @@ disp(['xsens和single-gps的起始时刻差(xsens-single_gps):',num2str(xsens_start_tim
 rtk_acc(:,1) = diff(rtk_vE) * (1/dt);
 rtk_acc(:,2) = diff(rtk_vN) * (1/dt);
 rtk_acc(:,3) = diff(rtk_vU) * (1/dt);
-% single gps差分计算速度
+%%%%%%%% single gps差分计算速度 %%%%%%%%
 single_gps_lat1 = single_gps_lat(1:end-1);
 single_gps_lat2 = single_gps_lat(2:end);
 single_gps_lon1 = single_gps_lon(1:end-1);
@@ -121,8 +121,8 @@ az = deg2rad(az);   %distance输出的az是角度制，转成弧度制
 single_gps_velENU = zeros(length(single_gps_lat1),3);
 single_gps_velENU(:,1) = arclen.*sin(az)/1; %vel_E的速度
 single_gps_velENU(:,2) = arclen.*cos(az)/1; %vel_N的速度
-single_gps_velENU(:,3) = (single_gps_alt(2:end)-single_gps_alt(1:end-1))/1; %vel_U的速度
-% laneto差分计算速度
+% single_gps_velENU(:,3) = (single_gps_alt(2:end)-single_gps_alt(1:end-1))/1; %vel_U的速度
+%%%%%%%% laneto差分计算速度 %%%%%%%%
 laneto_lat1 = laneto_lat(1:end-1);
 laneto_lat2 = laneto_lat(2:end);
 laneto_lon1 = laneto_lon(1:end-1);
