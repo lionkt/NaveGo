@@ -1,5 +1,6 @@
 clc;
 clear all;
+%% 数据提取
 xsens_file_path = 'F:\Momenta_Intern\Data\MTi-G-710数据\4-vehicle_test\8-22-vehicle-test\';
 vehicular_file_path = 'F:\momenta文件夹\2017-8-22跑车数据\8-22车载设备数据\';
 %%%%%%%%%%%%%%%%%%%%%% xsens数据的提取 %%%%%%%%%%%%%%%%%%%%%
@@ -29,9 +30,9 @@ xsens_att = [xsens_roll xsens_pitch xsens_yaw];
 xsens_free_acc_data = [xsens_F_accX xsens_F_accY xsens_F_accZ];
 xsens_vel_data = [xsens_velX xsens_velY xsens_velZ];
 
-XSENS_SAMPLE_FREQUENCY = 100;     % 采样频率100hz
+XSENS_SAMPLE_FREQUENCY = 100;     % xsens采样频率100hz
 dt = 1/XSENS_SAMPLE_FREQUENCY;
-xsens_sample_time_fine = (xsens_sample_time_fine-xsens_sample_time_fine(1))/10000;        %转换比例为10000 = 1s
+xsens_sample_time_fine = (xsens_sample_time_fine-xsens_sample_time_fine(1))/10000;        %xsens时间转换比例为10000 = 1s
 
 NED2ENU = [0,1,0;
            1,0,0;
@@ -92,8 +93,15 @@ good_imu_accY = good_imu_data{6};
 good_imu_accZ = good_imu_data{7};
 fclose(fileID);
 
+%% 数据存储、插值处理控制字段
+single_gps_data_mode = 0; % 0-使用single_gps数据作为single_gps，1-使用rtk产生的“虚假”的single_gps，2-使用laneto数据作为single_gps
+abstract_some_gps_data_flag = false;    % 剔除部分低精度gps数据，测试动态标定的效果
+use_interploation_to_single_gps = true; % 对低精度gps进行插值处理，提高低精度gps的数据频率
+use_single_gps_Z_vel = false;           % 将低精度gps的z轴速度引入kalman（目前测试结果是引入后反而不好）
+
+
 %% 时间对齐处理
-XSENS_GPS_LEAPSECOND = 16;       %2017年gps时钟相比UTC时间快了18s
+XSENS_GPS_LEAPSECOND = 16;       %2017年gps时钟相比UTC时间快了18s，但是发现取18s速度才能对上
 single_gps_leapsecond = 16;
 UTC_start_time = datenum('2017-08-20 00:00:00','yyyy-mm-dd HH:MM:SS');
 % xsens_start_time_raw = datenum('2017-08-22 12:47:03','yyyy-mm-dd HH:MM:SS');
@@ -107,21 +115,26 @@ disp(['xsens和rtk的起始时刻差(xsens-rtk):',num2str(xsens_start_time - rtk_time_t
 disp(['xsens和single-gps的起始时刻差(xsens-single_gps):',num2str(xsens_start_time - single_gps_time_tag(1)),'s']);
 
 
-%% 对rtk和gps数据进行操作
+%% 对rtk和gps数据进行处理
 rtk_acc(:,1) = diff(rtk_vE) * (1/dt);
 rtk_acc(:,2) = diff(rtk_vN) * (1/dt);
 rtk_acc(:,3) = diff(rtk_vU) * (1/dt);
 %%%%%%%% single gps插值处理增加数据量，提升采样频率 %%%%%%%%
-single_gps_interp_step = 1/4;   %插值后时间戳的间隔
-disp('====== 开始低精度GPS插值处理，增加数据量 ======');
-single_gps_lat = interp1(single_gps_time_tag, single_gps_lat, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
-single_gps_lon = interp1(single_gps_time_tag, single_gps_lon, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
-single_gps_alt = interp1(single_gps_time_tag, single_gps_alt, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
-single_gps_time_tag = [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)];
-single_gps_lat = single_gps_lat(:); 
-single_gps_lon = single_gps_lon(:);
-single_gps_alt = single_gps_alt(:);
-single_gps_time_tag = single_gps_time_tag(:);
+if use_interploation_to_single_gps == true
+    single_gps_interp_step = 1/4;   %插值后时间戳的间隔
+    disp('====== 开始低精度GPS插值处理，增加数据量 ======');
+    single_gps_lat = interp1(single_gps_time_tag, single_gps_lat, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
+    single_gps_lon = interp1(single_gps_time_tag, single_gps_lon, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
+    single_gps_alt = interp1(single_gps_time_tag, single_gps_alt, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
+    single_gps_time_tag = [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)];
+    single_gps_lat = single_gps_lat(:); 
+    single_gps_lon = single_gps_lon(:);
+    single_gps_alt = single_gps_alt(:);
+    single_gps_time_tag = single_gps_time_tag(:);
+else
+    disp('====== 低精度gps不插值 ======');
+    single_gps_interp_step = 1/1;   %原始gps数据的时间间隔
+end
 
 %%%%%%%% single gps差分计算速度 %%%%%%%%
 single_gps_lat1 = single_gps_lat(1:end-1);
@@ -133,7 +146,9 @@ az = deg2rad(az);   %distance输出的az是角度制，转成弧度制
 single_gps_velENU = zeros(length(single_gps_lat1),3);
 single_gps_velENU(:,1) = arclen.*sin(az)/single_gps_interp_step; %vel_E的速度
 single_gps_velENU(:,2) = arclen.*cos(az)/single_gps_interp_step; %vel_N的速度
-% single_gps_velENU(:,3) = (single_gps_alt(2:end)-single_gps_alt(1:end-1))/single_gps_interp_step; %vel_U的速度
+if use_single_gps_Z_vel == true
+    single_gps_velENU(:,3) = (single_gps_alt(2:end)-single_gps_alt(1:end-1))/single_gps_interp_step; %vel_U的速度
+end
 %%%%%%%% laneto差分计算速度 %%%%%%%%
 laneto_lat1 = laneto_lat(1:end-1);
 laneto_lat2 = laneto_lat(2:end);
@@ -144,7 +159,9 @@ az2 = deg2rad(az2);   %distance输出的az是角度制，转成弧度制
 laneto_velENU = zeros(length(laneto_lat1),3);
 laneto_velENU(:,1) = arclen2.*sin(az2)/1; %vel_E的速度
 laneto_velENU(:,2) = arclen2.*cos(az2)/1; %vel_N的速度
-% laneto_velENU(:,3) = (laneto_alt(2:end)-laneto_alt(1:end-1))/1; %vel_U的速度
+if use_single_gps_Z_vel == true
+    laneto_velENU(:,3) = (laneto_alt(2:end)-laneto_alt(1:end-1))/1; %vel_U的速度
+end
 
 %% 数据保存，方便主程序调用
 ENU2NED = NED2ENU^-1;
@@ -168,81 +185,77 @@ end
 ref_rtk.freq = 1/mean(diff(rtk_time_tag));                 % 采样频率（车载高精度惯导的rtk实际是100hz）
 save('ref_rtk.mat','ref_rtk');
 %%%%%%%%%%%%%%% 低精度GPS数据 %%%%%%%%%%%%%%%
-%%%% 将低精度的gps保存为Navego的形式，速度为NED
-limit_down = 1; limit_up = length(single_gps_velENU);    % 由于低精度gps的vel是差分算出来的，所以长度和原来不一致
-KT2MS = 0.514444;   % knot to m/s
-single_gps.t = single_gps_time_tag(limit_down:limit_up);
-single_gps.lat = deg2rad(single_gps_lat(limit_down:limit_up));     % Navego需要弧度形式的
-single_gps.lon = deg2rad(single_gps_lon(limit_down:limit_up));
-single_gps.h = single_gps_alt(limit_down:limit_up);
-single_gps.vel = (ENU2NED*single_gps_velENU')';     % navego的速度方向为NED
-single_gps.vel = single_gps.vel(limit_down:limit_up,:);
-single_gps.stdm = [5, 5, 10];                 % 直接用的Navego的demo数据，GPS positions standard deviations [lat lon h] (meters)
-single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % 直接用的Navego的demo数据，GPS velocities standard deviations [Vn Ve Vd] (meters/s)
-single_gps.larm = zeros(3,1);                 %  直接用的Navego的demo数据，GPS lever arm [X Y Z] (meters)
-single_gps.freq = 1/mean(diff(single_gps_time_tag));
-save('single_gps.mat','single_gps');
+if single_gps_data_mode == 0
+    %%%% 将低精度的gps保存为Navego的形式，速度为NED
+    limit_down = 1; limit_up = length(single_gps_velENU);    % 由于低精度gps的vel是差分算出来的，所以长度和原来不一致
+    KT2MS = 0.514444;   % knot to m/s
+    single_gps.t = single_gps_time_tag(limit_down:limit_up);
+    single_gps.lat = deg2rad(single_gps_lat(limit_down:limit_up));     % Navego需要弧度形式的
+    single_gps.lon = deg2rad(single_gps_lon(limit_down:limit_up));
+    single_gps.h = single_gps_alt(limit_down:limit_up);
+    single_gps.vel = (ENU2NED*single_gps_velENU')';     % navego的速度方向为NED
+    single_gps.vel = single_gps.vel(limit_down:limit_up,:);
+    single_gps.stdm = [5, 5, 10];                 % 直接用的Navego的demo数据，GPS positions standard deviations [lat lon h] (meters)
+    single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % 直接用的Navego的demo数据，GPS velocities standard deviations [Vn Ve Vd] (meters/s)
+    single_gps.larm = zeros(3,1);                 %  直接用的Navego的demo数据，GPS lever arm [X Y Z] (meters)
+    single_gps.freq = 1/mean(diff(single_gps_time_tag));
+    if abstract_some_gps_data_flag == true
+        %%%% 提走single gps的一段数据，测试xsens漂移的程度
+        disp('==== 剔除部分低精度gps数据 ====');
+        start_abstract_index = round(6.8*length(single_gps_velENU)/10);
+        end_abstract_index = round(7.0*length(single_gps_velENU)/10);
+        single_gps.t(start_abstract_index:end_abstract_index) = [];
+        single_gps.lat(start_abstract_index:end_abstract_index) = [];
+        single_gps.lon(start_abstract_index:end_abstract_index) = [];
+        single_gps.h(start_abstract_index:end_abstract_index) = [];
+        single_gps.vel(start_abstract_index:end_abstract_index,:) = [];
+    end
+    save('single_gps.mat','single_gps');
 
-%%%% 提走single gps的一段数据，测试xsens漂移的程度
-% limit_down = 1; limit_up = length(single_gps_velENU);    % 由于低精度gps的vel是差分算出来的，所以长度和原来不一致
-% KT2MS = 0.514444;   % knot to m/s
-% single_gps.t = single_gps_time_tag(limit_down:limit_up);
-% single_gps.lat = deg2rad(single_gps_lat(limit_down:limit_up));     % Navego需要弧度形式的
-% single_gps.lon = deg2rad(single_gps_lon(limit_down:limit_up));
-% single_gps.h = single_gps_alt(limit_down:limit_up);
-% single_gps.vel = (ENU2NED*single_gps_velENU')';     % navego的速度方向为NED
-% single_gps.vel = single_gps.vel(limit_down:limit_up,:);
-% single_gps.stdm = [5, 5, 10];                 % 直接用的Navego的demo数据，GPS positions standard deviations [lat lon h] (meters)
-% single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % 直接用的Navego的demo数据，GPS velocities standard deviations [Vn Ve Vd] (meters/s)
-% single_gps.larm = zeros(3,1);                 %  直接用的Navego的demo数据，GPS lever arm [X Y Z] (meters)
-% single_gps.freq = 1/mean(diff(single_gps_time_tag));
-% % 开始抽空数据
-% start_abstract_index = round(6.8*length(single_gps_velENU)/10);
-% end_abstract_index = round(7.0*length(single_gps_velENU)/10);
-% single_gps.t(start_abstract_index:end_abstract_index) = [];
-% single_gps.lat(start_abstract_index:end_abstract_index) = [];
-% single_gps.lon(start_abstract_index:end_abstract_index) = [];
-% single_gps.h(start_abstract_index:end_abstract_index) = [];
-% single_gps.vel(start_abstract_index:end_abstract_index,:) = [];
-% save('single_gps.mat','single_gps');
-
-
-%%%% 用rtk的数据伪造低精度gps，测试角度解算
-% RTK_SAMPLE_FERQUENCY = 100;
-% KT2MS = 0.514444;   % knot to m/s
-% single_gps.t = ref_rtk.t(1:RTK_SAMPLE_FERQUENCY:end);
-% single_gps.lat = ref_rtk.lat(1:RTK_SAMPLE_FERQUENCY:end);
-% single_gps.lon = ref_rtk.lon(1:RTK_SAMPLE_FERQUENCY:end);
-% single_gps.h = ref_rtk.h(1:RTK_SAMPLE_FERQUENCY:end);
-% single_gps.vel = ref_rtk.vel(1:RTK_SAMPLE_FERQUENCY:end,:);
-% single_gps.stdm = [5, 5, 10];                 % 直接用的Navego的demo数据，GPS positions standard deviations [lat lon h] (meters)
-% single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % 直接用的Navego的demo数据，GPS velocities standard deviations [Vn Ve Vd] (meters/s)
-% single_gps.larm = zeros(3,1);                 %  直接用的Navego的demo数据，GPS lever arm [X Y Z] (meters)
-% single_gps.freq = 1/mean(diff(single_gps_time_tag));
-% 开始抽空数据
-% start_abstract_index = round(8.8*length(single_gps.t)/10);
-% end_abstract_index = round(9.0*length(single_gps.t)/10);
-% single_gps.t(start_abstract_index:end_abstract_index) = [];
-% single_gps.lat(start_abstract_index:end_abstract_index) = [];
-% single_gps.lon(start_abstract_index:end_abstract_index) = [];
-% single_gps.h(start_abstract_index:end_abstract_index) = [];
-% single_gps.vel(start_abstract_index:end_abstract_index,:) = [];
-% save('single_gps.mat','single_gps');
-
-%%%% 将laneto的数据做成gps，速度为NED
-% limit_down = 1; limit_up = length(laneto_velENU);    % 由于低精度gps的vel是差分算出来的，所以长度和原来不一致
-% KT2MS = 0.514444;   % knot to m/s
-% single_gps.t = laneto_time_tag(limit_down:limit_up);
-% single_gps.lat = deg2rad(laneto_lat(limit_down:limit_up));     % Navego需要弧度形式的
-% single_gps.lon = deg2rad(laneto_lon(limit_down:limit_up));
-% single_gps.h = laneto_alt(limit_down:limit_up);
-% single_gps.vel = (ENU2NED*laneto_velENU')';     % navego的速度方向为NED
-% single_gps.vel = single_gps.vel(limit_down:limit_up,:);
-% single_gps.stdm = [5, 5, 10];                 % 直接用的Navego的demo数据，GPS positions standard deviations [lat lon h] (meters)
-% single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % 直接用的Navego的demo数据，GPS velocities standard deviations [Vn Ve Vd] (meters/s)
-% single_gps.larm = zeros(3,1);                 %  直接用的Navego的demo数据，GPS lever arm [X Y Z] (meters)
-% single_gps.freq = 1/mean(diff(single_gps_time_tag));
-% save('single_gps.mat','single_gps');
+elseif single_gps_data_mode == 1
+    %%%% 用rtk的数据伪造低精度gps，测试角度解算
+    RTK_SAMPLE_FERQUENCY = 100;
+    KT2MS = 0.514444;   % knot to m/s
+    single_gps.t = ref_rtk.t(1:RTK_SAMPLE_FERQUENCY:end);
+    single_gps.lat = ref_rtk.lat(1:RTK_SAMPLE_FERQUENCY:end);
+    single_gps.lon = ref_rtk.lon(1:RTK_SAMPLE_FERQUENCY:end);
+    single_gps.h = ref_rtk.h(1:RTK_SAMPLE_FERQUENCY:end);
+    single_gps.vel = ref_rtk.vel(1:RTK_SAMPLE_FERQUENCY:end,:);
+    single_gps.stdm = [5, 5, 10];                 % 直接用的Navego的demo数据，GPS positions standard deviations [lat lon h] (meters)
+    single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % 直接用的Navego的demo数据，GPS velocities standard deviations [Vn Ve Vd] (meters/s)
+    single_gps.larm = zeros(3,1);                 %  直接用的Navego的demo数据，GPS lever arm [X Y Z] (meters)
+    single_gps.freq = 1/mean(diff(single_gps_time_tag));    
+    if abstract_some_gps_data_flag == true    
+        % 开始剔除部分gps数据
+        disp('==== 剔除部分低精度gps数据 ====');
+        start_abstract_index = round(8.8*length(single_gps.t)/10);
+        end_abstract_index = round(9.0*length(single_gps.t)/10);
+        single_gps.t(start_abstract_index:end_abstract_index) = [];
+        single_gps.lat(start_abstract_index:end_abstract_index) = [];
+        single_gps.lon(start_abstract_index:end_abstract_index) = [];
+        single_gps.h(start_abstract_index:end_abstract_index) = [];
+        single_gps.vel(start_abstract_index:end_abstract_index,:) = [];
+    end
+    save('single_gps.mat','single_gps');
+    
+elseif single_gps_data_mode == 2
+    %%%% 将laneto的数据做成gps，速度为NED
+    limit_down = 1; limit_up = length(laneto_velENU);    % 由于低精度gps的vel是差分算出来的，所以长度和原来不一致
+    KT2MS = 0.514444;   % knot to m/s
+    single_gps.t = laneto_time_tag(limit_down:limit_up);
+    single_gps.lat = deg2rad(laneto_lat(limit_down:limit_up));     % Navego需要弧度形式的
+    single_gps.lon = deg2rad(laneto_lon(limit_down:limit_up));
+    single_gps.h = laneto_alt(limit_down:limit_up);
+    single_gps.vel = (ENU2NED*laneto_velENU')';     % navego的速度方向为NED
+    single_gps.vel = single_gps.vel(limit_down:limit_up,:);
+    single_gps.stdm = [5, 5, 10];                 % 直接用的Navego的demo数据，GPS positions standard deviations [lat lon h] (meters)
+    single_gps.stdv = 0.1 * KT2MS .* ones(1,3);   % 直接用的Navego的demo数据，GPS velocities standard deviations [Vn Ve Vd] (meters/s)
+    single_gps.larm = zeros(3,1);                 %  直接用的Navego的demo数据，GPS lever arm [X Y Z] (meters)
+    single_gps.freq = 1/mean(diff(single_gps_time_tag));
+    save('single_gps.mat','single_gps');
+else
+    disp('single_gps数据模式选择错误');
+end
 
 %%%%%%%%%%%%%%% XSNES数据 %%%%%%%%%%%%%%%
 % 根据xsens输出的朝向，将imu校回导航系
