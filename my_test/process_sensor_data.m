@@ -111,6 +111,18 @@ disp(['xsens和single-gps的起始时刻差(xsens-single_gps):',num2str(xsens_start_tim
 rtk_acc(:,1) = diff(rtk_vE) * (1/dt);
 rtk_acc(:,2) = diff(rtk_vN) * (1/dt);
 rtk_acc(:,3) = diff(rtk_vU) * (1/dt);
+%%%%%%%% single gps插值处理增加数据量，提升采样频率 %%%%%%%%
+single_gps_interp_step = 1/4;   %插值后时间戳的间隔
+disp('====== 开始低精度GPS插值处理，增加数据量 ======');
+single_gps_lat = interp1(single_gps_time_tag, single_gps_lat, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
+single_gps_lon = interp1(single_gps_time_tag, single_gps_lon, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
+single_gps_alt = interp1(single_gps_time_tag, single_gps_alt, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
+single_gps_time_tag = [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)];
+single_gps_lat = single_gps_lat(:); 
+single_gps_lon = single_gps_lon(:);
+single_gps_alt = single_gps_alt(:);
+single_gps_time_tag = single_gps_time_tag(:);
+
 %%%%%%%% single gps差分计算速度 %%%%%%%%
 single_gps_lat1 = single_gps_lat(1:end-1);
 single_gps_lat2 = single_gps_lat(2:end);
@@ -119,9 +131,9 @@ single_gps_lon2 = single_gps_lon(2:end);
 [arclen,az] = distance(single_gps_lat1,single_gps_lon1,single_gps_lat2,single_gps_lon2,referenceEllipsoid('wgs84'));    
 az = deg2rad(az);   %distance输出的az是角度制，转成弧度制
 single_gps_velENU = zeros(length(single_gps_lat1),3);
-single_gps_velENU(:,1) = arclen.*sin(az)/1; %vel_E的速度
-single_gps_velENU(:,2) = arclen.*cos(az)/1; %vel_N的速度
-% single_gps_velENU(:,3) = (single_gps_alt(2:end)-single_gps_alt(1:end-1))/1; %vel_U的速度
+single_gps_velENU(:,1) = arclen.*sin(az)/single_gps_interp_step; %vel_E的速度
+single_gps_velENU(:,2) = arclen.*cos(az)/single_gps_interp_step; %vel_N的速度
+% single_gps_velENU(:,3) = (single_gps_alt(2:end)-single_gps_alt(1:end-1))/single_gps_interp_step; %vel_U的速度
 %%%%%%%% laneto差分计算速度 %%%%%%%%
 laneto_lat1 = laneto_lat(1:end-1);
 laneto_lat2 = laneto_lat(2:end);
@@ -143,9 +155,6 @@ ref_rtk.lat = deg2rad(rtk_lat);     % Navego需要弧度形式的
 ref_rtk.lon = deg2rad(rtk_lon);
 ref_rtk.h = rtk_alt;
 ref_rtk.vel = (ENU2NED*rtk_velENU')';   % Navego中的速度为NED形式的
-% ref_rtk.roll = deg2rad(rtk_roll);
-% ref_rtk.pitch = deg2rad(rtk_pitch);
-% ref_rtk.yaw = deg2rad(rtk_yaw);
 temp_rtk_att = (ENU2NED*(deg2rad([rtk_roll rtk_pitch rtk_yaw]))')';
 ref_rtk.roll = temp_rtk_att(:,1);
 ref_rtk.pitch = temp_rtk_att(:,2);
