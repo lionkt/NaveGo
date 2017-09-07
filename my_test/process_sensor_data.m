@@ -144,7 +144,7 @@ az2 = deg2rad(az2);   %distance输出的az是角度制，转成弧度制
 laneto_velENU = zeros(length(laneto_lat1),3);
 laneto_velENU(:,1) = arclen2.*sin(az2)/1; %vel_E的速度
 laneto_velENU(:,2) = arclen2.*cos(az2)/1; %vel_N的速度
-laneto_velENU(:,3) = (laneto_alt(2:end)-laneto_alt(1:end-1))/1; %vel_U的速度
+% laneto_velENU(:,3) = (laneto_alt(2:end)-laneto_alt(1:end-1))/1; %vel_U的速度
 
 %% 数据保存，方便主程序调用
 ENU2NED = NED2ENU^-1;

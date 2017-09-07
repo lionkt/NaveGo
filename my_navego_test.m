@@ -210,9 +210,20 @@ if strcmp(IMU1_INS, 'ON')
         xsens_imu.fb = xsens_imu.fb (igx:end, :);
         xsens_imu.wb = xsens_imu.wb (igx:end, :);        
     end
-    
-    % Guarantee that imu1.t(end-1) < gps.t(end) < imu1.t(end)
     gps1 = single_gps;
+    if(xsens_imu.t(1) >= single_gps.t(1))
+        igx = find(single_gps.t < xsens_imu.t(1),1,'last');
+        if isnan(igx)
+            igx=1;
+        end
+        gps1.t   = single_gps.t  (igx:end, :);
+        gps1.lat = single_gps.lat(igx:end, :);
+        gps1.lon = single_gps.lon(igx:end, :);
+        gps1.h   = single_gps.h  (igx:end, :);
+        gps1.vel = single_gps.vel(igx:end, :);
+    end
+    
+    % Guarantee that imu1.t(end-1) < gps.t(end) < imu1.t(end)    
     if (xsens_imu.t(end) <= single_gps.t(end)),
         
         fgx  = find(single_gps.t < xsens_imu.t(end), 1, 'last' );
@@ -347,7 +358,7 @@ if (strcmp(PLOT,'ON'))
     subplot(311)
     plot(imu1_ref.t, (imu1_ref.roll-ref_1.roll).*R2D, '-b');
     hold on
-    plot (single_gps.t, R2D.*sig3_rr(:,1), '--k', single_gps.t, -R2D.*sig3_rr(:,1), '--k' )
+    plot (gps1.t, R2D.*sig3_rr(:,1), '--k', gps1.t, -R2D.*sig3_rr(:,1), '--k' )
     ylabel('[deg]')
     xlabel('Time [s]')
     legend('IMU1', '3\sigma');
@@ -356,7 +367,7 @@ if (strcmp(PLOT,'ON'))
     subplot(312)
     plot(imu1_ref.t, (imu1_ref.pitch-ref_1.pitch).*R2D, '-b');
     hold on
-    plot (single_gps.t, R2D.*sig3_rr(:,2), '--k', single_gps.t, -R2D.*sig3_rr(:,2), '--k' )
+    plot (gps1.t, R2D.*sig3_rr(:,2), '--k', gps1.t, -R2D.*sig3_rr(:,2), '--k' )
     ylabel('[deg]')
     xlabel('Time [s]')
     legend('IMU1', '3\sigma');
@@ -365,7 +376,7 @@ if (strcmp(PLOT,'ON'))
     subplot(313)
     plot(imu1_ref.t, (imu1_ref.yaw-ref_1.yaw).*R2D, '-b');
     hold on
-    plot (single_gps.t, R2D.*sig3_rr(:,3), '--k', single_gps.t, -R2D.*sig3_rr(:,3), '--k' )
+    plot (gps1.t, R2D.*sig3_rr(:,3), '--k', gps1.t, -R2D.*sig3_rr(:,3), '--k' )
     ylabel('[deg]')
     xlabel('Time [s]')
     legend('IMU1', '3\sigma');
@@ -374,21 +385,21 @@ if (strcmp(PLOT,'ON'))
     % VELOCITIES
     figure;
     subplot(311)
-    plot(ref_rtk.t, ref_rtk.vel(:,1), '--k', single_gps.t, single_gps.vel(:,1),'-c', imu1_e.t, imu1_e.vel(:,1),'-b');
+    plot(ref_rtk.t, ref_rtk.vel(:,1), '--k', gps1.t, gps1.vel(:,1),'-c', imu1_e.t, imu1_e.vel(:,1),'-b');
     xlabel('Time [s]')
     ylabel('[m/s]')
     legend('REF', 'GPS', 'IMU1');
     title('NORTH VELOCITY');
     
     subplot(312)
-    plot(ref_rtk.t, ref_rtk.vel(:,2), '--k', single_gps.t, single_gps.vel(:,2),'-c', imu1_e.t, imu1_e.vel(:,2),'-b');
+    plot(ref_rtk.t, ref_rtk.vel(:,2), '--k', gps1.t, gps1.vel(:,2),'-c', imu1_e.t, imu1_e.vel(:,2),'-b');
     xlabel('Time [s]')
     ylabel('[m/s]')
     legend('REF', 'GPS', 'IMU1');
     title('EAST VELOCITY');
     
     subplot(313)
-    plot(ref_rtk.t, ref_rtk.vel(:,3), '--k', single_gps.t, single_gps.vel(:,3),'-c', imu1_e.t, imu1_e.vel(:,3),'-b');
+    plot(ref_rtk.t, ref_rtk.vel(:,3), '--k', gps1.t, gps1.vel(:,3),'-c', imu1_e.t, imu1_e.vel(:,3),'-b');
     xlabel('Time [s]')
     ylabel('[m/s]')
     legend('REF', 'GPS', 'IMU1');
@@ -401,7 +412,7 @@ if (strcmp(PLOT,'ON'))
     hold on
     plot(imu1_ref.t, (imu1_ref.vel(:,1) - ref_1.vel(:,1)), '-b');
     hold on
-    plot (single_gps.t, sig3_rr(:,4), '--k', single_gps.t, -sig3_rr(:,4), '--k' )
+    plot (gps1.t, sig3_rr(:,4), '--k', gps1.t, -sig3_rr(:,4), '--k' )
     xlabel('Time [s]')
     ylabel('[m/s]')
     legend('GPS', 'IMU1', '3\sigma');
@@ -412,7 +423,7 @@ if (strcmp(PLOT,'ON'))
     hold on
     plot(imu1_ref.t, (imu1_ref.vel(:,2) - ref_1.vel(:,2)), '-b');
     hold on
-    plot (single_gps.t, sig3_rr(:,5), '--k', single_gps.t, -sig3_rr(:,5), '--k' )
+    plot (gps1.t, sig3_rr(:,5), '--k', gps1.t, -sig3_rr(:,5), '--k' )
     xlabel('Time [s]')
     ylabel('[m/s]')
     legend('GPS', 'IMU1', '3\sigma');
@@ -423,7 +434,7 @@ if (strcmp(PLOT,'ON'))
     hold on
     plot(imu1_ref.t, (imu1_ref.vel(:,3) - imu1_ref.vel(:,3)), '-b');
     hold on
-    plot (single_gps.t, sig3_rr(:,6), '--k', single_gps.t, -sig3_rr(:,6), '--k' )
+    plot (gps1.t, sig3_rr(:,6), '--k', gps1.t, -sig3_rr(:,6), '--k' )
     xlabel('Time [s]')
     ylabel('[m/s]')
     legend('GPS', 'IMU1', '3\sigma');
@@ -432,21 +443,21 @@ if (strcmp(PLOT,'ON'))
     % POSITION
     figure;
     subplot(311)
-    plot(ref_rtk.t, ref_rtk.lat .*R2D, '--k', single_gps.t, single_gps.lat.*R2D, '-c', imu1_e.t, imu1_e.lat.*R2D, '-b');
+    plot(ref_rtk.t, ref_rtk.lat .*R2D, '--k', gps1.t, gps1.lat.*R2D, '-c', imu1_e.t, imu1_e.lat.*R2D, '-b');
     xlabel('Time [s]')
     ylabel('[deg]')
     legend('REF', 'GPS', 'IMU1');
     title('LATITUDE');
     
     subplot(312)
-    plot(ref_rtk.t, ref_rtk.lon .*R2D, '--k', single_gps.t, single_gps.lon.*R2D, '-c', imu1_e.t, imu1_e.lon.*R2D, '-b');
+    plot(ref_rtk.t, ref_rtk.lon .*R2D, '--k', gps1.t, gps1.lon.*R2D, '-c', imu1_e.t, imu1_e.lon.*R2D, '-b');
     xlabel('Time [s]')
     ylabel('[deg]')
     legend('REF', 'GPS', 'IMU1');
     title('LONGITUDE');
     
     subplot(313)
-    plot(ref_rtk.t, ref_rtk.h, '--k', single_gps.t, single_gps.h, '-c', imu1_e.t, imu1_e.h, '-b');
+    plot(ref_rtk.t, ref_rtk.h, '--k', gps1.t, gps1.h, '-c', imu1_e.t, imu1_e.h, '-b');
     xlabel('Time [s]')
     ylabel('[m]')
     legend('REF', 'GPS', 'IMU1');
@@ -460,9 +471,9 @@ if (strcmp(PLOT,'ON'))
     LAT2M = RN + imu1_ref.h;
     LON2M = (RE + imu1_ref.h).*cos(imu1_ref.lat);
     
-    [RN,RE]  = radius(single_gps.lat, 'double');
-    LAT2M_G = RN + single_gps.h;
-    LON2M_G = (RE + single_gps.h).*cos(single_gps.lat);
+    [RN,RE]  = radius(gps1.lat, 'double');
+    LAT2M_G = RN + gps1.h;
+    LON2M_G = (RE + gps1.h).*cos(gps1.lat);
     
     [RN,RE]  = radius(gps_ref.lat, 'double');
     LAT2M_GR = RN + gps_ref.h;
@@ -474,7 +485,7 @@ if (strcmp(PLOT,'ON'))
     hold on
     plot(imu1_ref.t, LAT2M.*(imu1_ref.lat - ref_1.lat), '-b')
     hold on
-    plot (single_gps.t, LAT2M_G.*sig3_rr(:,7), '--k', single_gps.t, -LAT2M_G.*sig3_rr(:,7), '--k' )
+    plot (gps1.t, LAT2M_G.*sig3_rr(:,7), '--k', gps1.t, -LAT2M_G.*sig3_rr(:,7), '--k' )
     xlabel('Time [s]')
     ylabel('[m]')
     legend('GPS', 'IMU1', '3\sigma');
@@ -485,7 +496,7 @@ if (strcmp(PLOT,'ON'))
     hold on
     plot(imu1_ref.t, LON2M.*(imu1_ref.lon - ref_1.lon), '-b')
     hold on
-    plot(single_gps.t, LON2M_G.*sig3_rr(:,8), '--k', single_gps.t, -LON2M_G.*sig3_rr(:,8), '--k' )
+    plot(gps1.t, LON2M_G.*sig3_rr(:,8), '--k', gps1.t, -LON2M_G.*sig3_rr(:,8), '--k' )
     xlabel('Time [s]')
     ylabel('[m]')
     legend('GPS', 'IMU1', '3\sigma');
@@ -496,7 +507,7 @@ if (strcmp(PLOT,'ON'))
     hold on
     plot(imu1_ref.t, (imu1_ref.h - ref_1.h), '-b')
     hold on
-    plot(single_gps.t, sig3_rr(:,9), '--k', single_gps.t, -sig3_rr(:,9), '--k' )
+    plot(gps1.t, sig3_rr(:,9), '--k', gps1.t, -sig3_rr(:,9), '--k' )
     xlabel('Time [s]')
     ylabel('[m]')
     legend('GPS', 'IMU1', '3\sigma');
