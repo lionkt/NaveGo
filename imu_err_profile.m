@@ -31,7 +31,8 @@ function imu_nav = imu_err_profile(imu, dt)
 % URL:     https://github.com/rodralez/navego 
 
 D2R = (pi/180);     % deg to rad
-G2MSS = 9.81;       % g to m/s^2
+% G2MSS = 9.81;       % g to m/s^2
+G2MSS = 9.80151;       % g to m/s^2，crown change到北京的g
 
 % Copy previois fields
 imu_nav = imu;

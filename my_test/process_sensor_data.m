@@ -94,15 +94,15 @@ good_imu_accZ = good_imu_data{7};
 fclose(fileID);
 
 %% Êı¾İ´æ´¢¡¢²åÖµ´¦Àí¿ØÖÆ×Ö¶Î
-single_gps_data_mode = 0; % 0-Ê¹ÓÃsingle_gpsÊı¾İ×÷Îªsingle_gps£¬1-Ê¹ÓÃrtk²úÉúµÄ¡°Ğé¼Ù¡±µÄsingle_gps£¬2-Ê¹ÓÃlanetoÊı¾İ×÷Îªsingle_gps
+single_gps_data_mode = 0; % 0-Ê¹ÓÃsingle_gpsÊı¾İ×÷Îªsingle_gps£¬1-Ê¹ÓÃrtk²úÉúµÄ¡°Ğé¼Ù¡±µÄsingle_gps£¬2-Ê¹ÓÃlanetoÊı¾İ×÷Îªsingle_gps£¬3-Ê¹ÓÃxsens×Ô´øµÄgps½âËãµÄÎ»ÖÃ
 abstract_some_gps_data_flag = false;    % ÌŞ³ı²¿·ÖµÍ¾«¶ÈgpsÊı¾İ£¬²âÊÔ¶¯Ì¬±ê¶¨µÄĞ§¹û
-use_interploation_to_single_gps = true; % ¶ÔµÍ¾«¶Ègps½øĞĞ²åÖµ´¦Àí£¬Ìá¸ßµÍ¾«¶ÈgpsµÄÊı¾İÆµÂÊ
+use_interploation_to_single_gps = false; % ¶ÔµÍ¾«¶Ègps½øĞĞ²åÖµ´¦Àí£¬Ìá¸ßµÍ¾«¶ÈgpsµÄÊı¾İÆµÂÊ
 use_single_gps_Z_vel = false;           % ½«µÍ¾«¶ÈgpsµÄzÖáËÙ¶ÈÒıÈëkalman£¨Ä¿Ç°²âÊÔ½á¹ûÊÇÒıÈëºó·´¶ø²»ºÃ£©
 
 
 %% Ê±¼ä¶ÔÆë´¦Àí
-XSENS_GPS_LEAPSECOND = 16;       %2017ÄêgpsÊ±ÖÓÏà±ÈUTCÊ±¼ä¿ìÁË18s£¬µ«ÊÇ·¢ÏÖÈ¡18sËÙ¶È²ÅÄÜ¶ÔÉÏ
-single_gps_leapsecond = 16;
+XSENS_GPS_LEAPSECOND = 15;       %xsensµÄleapsecondĞŞÕı£¬2017ÄêgpsÊ±ÖÓÏà±ÈUTCÊ±¼ä¿ìÁË18s£¬µ«ÊÇ·¢ÏÖÈ¡15s×óÓÒÊ±ËÙ¶È²ÅÄÜ¶ÔÉÏ
+single_gps_leapsecond = 15;      %µÍ¾«¶ÈgpsµÄleapsecondĞŞÕı£¬²âÊÔ·¢ÏÖÓÃ15sÊ±8-22µÄµÍ¾«¶ÈgpsºÍrtkÊı¾İ¶ÔµÄ×îºÃ
 UTC_start_time = datenum('2017-08-20 00:00:00','yyyy-mm-dd HH:MM:SS');
 % xsens_start_time_raw = datenum('2017-08-22 12:47:03','yyyy-mm-dd HH:MM:SS');
 xsens_start_time_raw = datenum('2017-08-22 12:32:50','yyyy-mm-dd HH:MM:SS');    %MTÉÏ¶Áµ½µÄÊ±¿ÌÊÇ12:32:50
@@ -121,7 +121,7 @@ rtk_acc(:,2) = diff(rtk_vN) * (1/dt);
 rtk_acc(:,3) = diff(rtk_vU) * (1/dt);
 %%%%%%%% single gps²åÖµ´¦ÀíÔö¼ÓÊı¾İÁ¿£¬ÌáÉı²ÉÑùÆµÂÊ %%%%%%%%
 if use_interploation_to_single_gps == true
-    single_gps_interp_step = 1/4;   %²åÖµºóÊ±¼ä´ÁµÄ¼ä¸ô
+    single_gps_interp_step = 1/2;   %²åÖµºóÊ±¼ä´ÁµÄ¼ä¸ô
     disp('====== ¿ªÊ¼µÍ¾«¶ÈGPS²åÖµ´¦Àí£¬Ôö¼ÓÊı¾İÁ¿ ======');
     single_gps_lat = interp1(single_gps_time_tag, single_gps_lat, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
     single_gps_lon = interp1(single_gps_time_tag, single_gps_lon, [single_gps_time_tag(1):single_gps_interp_step:single_gps_time_tag(end)],'spline');
@@ -147,7 +147,10 @@ single_gps_velENU = zeros(length(single_gps_lat1),3);
 single_gps_velENU(:,1) = arclen.*sin(az)/single_gps_interp_step; %vel_EµÄËÙ¶È
 single_gps_velENU(:,2) = arclen.*cos(az)/single_gps_interp_step; %vel_NµÄËÙ¶È
 if use_single_gps_Z_vel == true
+    disp('=== µÍ¾«¶ÈgpsÒıÈëgpsZÖáËÙ¶ÈÔ¼Êø ===');
     single_gps_velENU(:,3) = (single_gps_alt(2:end)-single_gps_alt(1:end-1))/single_gps_interp_step; %vel_UµÄËÙ¶È
+else
+    disp('=== µÍ¾«¶Ègps²»ÒıÈëgpsZÖáËÙ¶ÈÔ¼Êø ===');
 end
 %%%%%%%% laneto²î·Ö¼ÆËãËÙ¶È %%%%%%%%
 laneto_lat1 = laneto_lat(1:end-1);
@@ -160,7 +163,10 @@ laneto_velENU = zeros(length(laneto_lat1),3);
 laneto_velENU(:,1) = arclen2.*sin(az2)/1; %vel_EµÄËÙ¶È
 laneto_velENU(:,2) = arclen2.*cos(az2)/1; %vel_NµÄËÙ¶È
 if use_single_gps_Z_vel == true
+    disp('=== lanetoÒıÈëgpsZÖáËÙ¶ÈÔ¼Êø ===');
     laneto_velENU(:,3) = (laneto_alt(2:end)-laneto_alt(1:end-1))/1; %vel_UµÄËÙ¶È
+else
+    disp('=== laneto²»ÒıÈëgpsZÖáËÙ¶ÈÔ¼Êø ===');
 end
 
 %% Êı¾İ±£´æ£¬·½±ãÖ÷³ÌĞòµ÷ÓÃ
@@ -186,6 +192,7 @@ ref_rtk.freq = 1/mean(diff(rtk_time_tag));                 % ²ÉÑùÆµÂÊ£¨³µÔØ¸ß¾«¶
 save('ref_rtk.mat','ref_rtk');
 %%%%%%%%%%%%%%% µÍ¾«¶ÈGPSÊı¾İ %%%%%%%%%%%%%%%
 if single_gps_data_mode == 0
+    disp('==== Ê¹ÓÃµÍ¾«¶ÈgpsÊı¾İ ====');
     %%%% ½«µÍ¾«¶ÈµÄgps±£´æÎªNavegoµÄĞÎÊ½£¬ËÙ¶ÈÎªNED
     limit_down = 1; limit_up = length(single_gps_velENU);    % ÓÉÓÚµÍ¾«¶ÈgpsµÄvelÊÇ²î·ÖËã³öÀ´µÄ£¬ËùÒÔ³¤¶ÈºÍÔ­À´²»Ò»ÖÂ
     KT2MS = 0.514444;   % knot to m/s
@@ -214,6 +221,7 @@ if single_gps_data_mode == 0
 
 elseif single_gps_data_mode == 1
     %%%% ÓÃrtkµÄÊı¾İÎ±ÔìµÍ¾«¶Ègps£¬²âÊÔ½Ç¶È½âËã
+    disp('==== Ê¹ÓÃrtkÊı¾İÎ±ÔìµÍ¾«¶Ègps ====');
     RTK_SAMPLE_FERQUENCY = 100;
     KT2MS = 0.514444;   % knot to m/s
     single_gps.t = ref_rtk.t(1:RTK_SAMPLE_FERQUENCY:end);
@@ -240,6 +248,7 @@ elseif single_gps_data_mode == 1
     
 elseif single_gps_data_mode == 2
     %%%% ½«lanetoµÄÊı¾İ×ö³Égps£¬ËÙ¶ÈÎªNED
+    disp('==== Ê¹ÓÃlanetoÊı¾İÎ±ÔìµÍ¾«¶Ègps ====');
     limit_down = 1; limit_up = length(laneto_velENU);    % ÓÉÓÚµÍ¾«¶ÈgpsµÄvelÊÇ²î·ÖËã³öÀ´µÄ£¬ËùÒÔ³¤¶ÈºÍÔ­À´²»Ò»ÖÂ
     KT2MS = 0.514444;   % knot to m/s
     single_gps.t = laneto_time_tag(limit_down:limit_up);
@@ -306,20 +315,20 @@ subplot(311);
 plot(rtk_time_tag,rtk_yaw,'.');
 hold on;
 plot(xsens_time_tag,-xsens_att(:,3),'.');plot(laneto_time_tag,laneto_yaw,'.');
-plot(imu_e_time_tag,imu_e_att(:,3),'.');         % Navego½âËãµÃµ½µÄimu×ËÌ¬½Ç
-title('yaw');legend('rtk','xsens','laneto','Navego-calculation');
+plot(imu_e_time_tag,-imu_e_att(:,3),'.');         % Navego½âËãµÃµ½µÄimu×ËÌ¬½Ç
+ylabel('[deg]');title('yaw');legend('rtk','xsens','laneto','Navego-calculation');
 subplot(312);
 plot(rtk_time_tag,rtk_pitch,'.');
 hold on;
 plot(xsens_time_tag,-xsens_att(:,2),'.');plot(laneto_time_tag,laneto_pitch,'.');
-plot(imu_e_time_tag,imu_e_att(:,2),'.');         % Navego½âËãµÃµ½µÄimu×ËÌ¬½Ç
-title('pitch');legend('rtk','xsens','laneto','Navego-calculation');
+plot(imu_e_time_tag,-imu_e_att(:,2),'.');         % Navego½âËãµÃµ½µÄimu×ËÌ¬½Ç
+ylabel('[deg]');title('pitch');legend('rtk','xsens','laneto','Navego-calculation');
 subplot(313);
 plot(rtk_time_tag,rtk_roll,'.');
 hold on;
 plot(xsens_time_tag,-xsens_att(:,1),'.');plot(laneto_time_tag,laneto_roll,'.');
-plot(imu_e_time_tag,imu_e_att(:,1),'.');         % Navego½âËãµÃµ½µÄimu×ËÌ¬½Ç
-title('roll');legend('rtk','xsens','laneto','Navego-calculation');
+plot(imu_e_time_tag,-imu_e_att(:,1),'.');         % Navego½âËãµÃµ½µÄimu×ËÌ¬½Ç
+ylabel('[deg]');title('roll');legend('rtk','xsens','laneto','Navego-calculation');
 
 %%%%%%%% »æÖÆ¼ÓËÙ¶ÈÊı¾İ %%%%%%%%
 figure;
@@ -350,24 +359,24 @@ figure;
 subplot(211);
 plot(ref_rtk.t,ref_rtk.vel(:,1));
 hold on;
-plot(single_gps.t, single_gps.vel(:,1));
+plot(single_gps.t, single_gps.vel(:,1),'.');
 title('to Navego north-speed');legend('rtk','single_gps');
 subplot(212);
 plot(ref_rtk.t,ref_rtk.vel(:,2));
 hold on;
-plot(single_gps.t, single_gps.vel(:,2));
+plot(single_gps.t, single_gps.vel(:,2),'.');
 title('to Navego east-speed');legend('rtk','single_gps');
 
 figure;
 subplot(211);
 plot(ref_rtk.t,ref_rtk.lat);
 hold on;
-plot(single_gps.t, single_gps.lat);
+plot(single_gps.t, single_gps.lat,'.');
 title('to Navego lat');legend('rtk','single_gps');
 subplot(212);
 plot(ref_rtk.t,ref_rtk.lon);
 hold on;
-plot(single_gps.t, single_gps.lon);
+plot(single_gps.t, single_gps.lon,'.');
 title('to Navego lon');legend('rtk','single_gps');
 
 figure;

@@ -432,7 +432,7 @@ if (strcmp(PLOT,'ON'))
     subplot(313)
     plot(gps_ref.t, (gps_ref.vel(:,3) - ref_g.vel(:,3)), '-c');
     hold on
-    plot(imu1_ref.t, (imu1_ref.vel(:,3) - imu1_ref.vel(:,3)), '-b');
+    plot(imu1_ref.t, (imu1_ref.vel(:,3) - ref_1.vel(:,3)), '-b');
     hold on
     plot (gps1.t, sig3_rr(:,6), '--k', gps1.t, -sig3_rr(:,6), '--k' )
     xlabel('Time [s]')
