@@ -1,4 +1,4 @@
-function [lat_comp,lon_comp,velNED_comp] = compensate_for_drift(imu_e,index)
+function [lat_comp,lon_comp,velNED_comp] = my_compensate_for_drift(imu_e,index)
 % 由于gps信号到来时，会使imu产生一个跳变。现在通过将跳变折算回上一段imu的解算结果中进行补偿
 % imu_e：通过kalman filter处理过的imu数据
 % index：gps信号到来时，imu数据的index
