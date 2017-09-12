@@ -1,4 +1,4 @@
 function [rpath, dpath, mytestflag] = psinsenvi()
-	rpath = 'F:\Momenta_Intern\Codes\Matlab-PSINS-DY\高精度捷联惯性导航系统Matlab工具箱';
-	dpath = 'F:\Momenta_Intern\Codes\Matlab-PSINS-DY\高精度捷联惯性导航系统Matlab工具箱\data\';
+	rpath = 'F:\Github\NaveGo\Matlab-PSINS-DY';
+	dpath = 'F:\Github\NaveGo\Matlab-PSINS-DY\data\';
 	mytestflag = 0;
