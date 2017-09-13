@@ -219,13 +219,8 @@ last_imu_comp_ix = 1;    %crown add for compensation
 % GPS clock is the master clock
 for j = 2:Mg
     % crown add for compensation
-    if i==1
-        lat_e_last = lat_e(1); lon_e_last = lon_e(1); h_e_last = h_e(1);
-        vel_e_last = vel_e(1,:);
-    else
-        lat_e_last = lat_e(i-1); lon_e_last = lon_e(i-1); h_e_last = h_e(i-1);
-        vel_e_last = vel_e(i-1,:);
-    end
+    lat_e_last = lat_e(i); lon_e_last = lon_e(i); h_e_last = h_e(i);
+    vel_e_last = vel_e(i,:);
     lat_e_now = 0; lon_e_now = 0; h_e_now = 0;
     roll_e_now = 0; pitch_e_now = 0; yaw_e_now = 0;
     vel_e_now = zeros(1,3);
@@ -272,7 +267,7 @@ for j = 2:Mg
         vel_e_now = vel_n;
         
         % Position update
-        pos = pos_update([lat_e_last lon_e_last double(h_e_last)], double(vel_e_last), double(dti) );
+        pos = pos_update([lat_e_last lon_e_last double(h_e_last)], double(vel_e_now), double(dti) );
         lat_e_now = pos(1);
         lon_e_now = pos(2);
         h_e_now   = pos(3);
@@ -281,8 +276,10 @@ for j = 2:Mg
         %  yawm_e(i) = hd_update (imu.mb(i,:), roll_e(i),  pitch_e(i), D);
         
         % crown add for compensation
-        lat_e_last = lat_e_now; lon_e_last = lon_e_now; h_e_last = h_e_now;
-        vel_e_last = vel_e_now;
+        if (ti(i) <= tg(j))
+            lat_e_last = lat_e_now; lon_e_last = lon_e_now; h_e_last = h_e_now;
+            vel_e_last = vel_e_now;
+        end
 
     end
 
@@ -291,6 +288,62 @@ for j = 2:Mg
     lat_e(i) = lat_e_now; lon_e(i) = lon_e_now; h_e(i) = h_e_now;
     vel_e(i,:) = vel_e_now;
 
+
+% for j = 2:Mg
+    
+%     while (ti(i) <= tg(j))
+        
+%         %% INERTIAL NAVIGATION SYSTEM (INS)
+        
+%         % Print a dot on console every 10,000 INS executions
+%         if (mod(i,10000) == 0), fprintf('. ');  end
+%         % Print a return on console every 200,000 INS executions
+%         if (mod(i,200000) == 0), fprintf('\n'); end
+        
+%         % Index for INS navigation update
+%         i = i + 1;
+        
+%         % INS period
+%         dti = ti(i) - ti(i-1);
+        
+%         % Correct inertial sensors
+%         wb_corrected = (imu.wb(i,:)' + gb_fix + gb_drift );
+%         fb_corrected = (imu.fb(i,:)' + ab_fix + ab_drift );
+        
+%         % Attitude update
+%         omega_ie_N = earthrate(lat_e(i-1), precision);
+%         omega_en_N = transportrate(lat_e(i-1), vel_e(i-1,1), vel_e(i-1,2), h_e(i-1));
+        
+%         [qua_n, DCMbn_n, euler] = att_update(wb_corrected, DCMbn, qua, ...
+%             omega_ie_N, omega_en_N, dti, att_mode);
+% %         [qua_n, DCMbn_n, euler] = my_att_update(wb_corrected, fb_corrected, DCMbn, qua, ...
+% %             omega_ie_N, omega_en_N, dti, att_mode);         % crown add 6-axes fusion attitude update method
+%         roll_e(i) = euler(1);
+%         pitch_e(i)= euler(2);
+%         yaw_e(i)  = euler(3);
+%         DCMbn = DCMbn_n;
+%         qua = qua_n;
+        
+%         % Gravity update
+%         g = gravity(lat_e(i-1), h_e(i-1));
+        
+%         % Velocity update
+%         fn = (DCMbn_n * fb_corrected);
+%         vel_n = vel_update(fn, vel_e(i-1,:), omega_ie_N, omega_en_N, g', dti); %
+%         vel_e (i,:) = vel_n;
+        
+%         % Position update
+%         pos = pos_update([lat_e(i-1) lon_e(i-1) double(h_e(i-1))], double(vel_e(i,:)), double(dti) );
+%         lat_e(i) = pos(1);
+%         lon_e(i) = pos(2);
+%         h_e(i)   = pos(3);
+        
+%         % Magnetic heading update
+%         %  yawm_e(i) = hd_update (imu.mb(i,:), roll_e(i),  pitch_e(i), D);
+        
+%     end
+    
+    % GPS clock is the master clock
     %% INNOVATIONS
     
     [RM,RN] = radius(lat_e(i), precision);
@@ -372,15 +425,15 @@ for j = 2:Mg
     
     %%%%% crown add, 开始根据kalman滤波得到的新imu_e补偿前一段的imu_e数据
     T_comp = ti(i)-ti(last_imu_comp_ix);    % 计算compensation周期长度
-    delta_T_comp = T_comp/(i-last_imu_comp_ix); %小时间段的长度
-    [arclen,az] = distance(lat_e(i-1),lon_e(i-1),lat_e(i),lon_e(i),referenceEllipsoid('wgs84'));   %目前只补偿N、E向
+    delta_T_comp = T_comp/(i-1-last_imu_comp_ix); %小时间段的长度
+    [arclen,az] = distance(lat_e_last,lon_e_last,lat_e(i),lon_e(i),referenceEllipsoid('wgs84'));   %目前只补偿N、E向
     az = deg2rad(az);   %distance输出的az是角度制，转成弧度制
     pos_err_N = arclen.*cos(az);    %北向的误差（NED坐标系）
     pos_err_E = arclen.*sin(az);    %东向的误差（NED坐标系）
     acc_comp_N = 2*pos_err_N/(T_comp^2);     % 需要补偿的N向加速度
     acc_comp_E = 2*pos_err_E/(T_comp^2);     % 需要补偿的E向加速度
     calc_index = last_imu_comp_ix;
-    while (calc_index < i)
+    while (calc_index < i-1)
         
         %% INERTIAL NAVIGATION SYSTEM (INS)
         
@@ -396,14 +449,14 @@ for j = 2:Mg
         dti = ti(calc_index) - ti(calc_index-1);
         
         % Correct inertial sensors
-%         gb_fix_back = B(j-1,1:3);
-%         ab_fix_back = B(j-1,4:6);
-%         gb_drift_back = B(j-1,7:9);
-%         ab_drift_back = B(j-1,10:12);
-%         gb_fix_back = gb_fix_back';ab_fix_back = ab_fix_back';
-%         gb_drift_back = gb_drift_back'; ab_drift_back = ab_drift_back';
-        wb_corrected = (imu.wb(calc_index,:)' + gb_fix + gb_drift );
-        fb_corrected = (imu.fb(calc_index,:)' + ab_fix + ab_drift );
+        gb_fix_back = B(j-1,1:3);
+        ab_fix_back = B(j-1,4:6);
+        gb_drift_back = B(j-1,7:9);
+        ab_drift_back = B(j-1,10:12);
+        gb_fix_back = gb_fix_back';ab_fix_back = ab_fix_back';
+        gb_drift_back = gb_drift_back'; ab_drift_back = ab_drift_back';
+        wb_corrected = (imu.wb(calc_index,:)' + gb_fix_back + gb_drift_back );
+        fb_corrected = (imu.fb(calc_index,:)' + ab_fix_back + ab_drift_back );
         
         % Attitude update
         omega_ie_N = earthrate(lat_e(calc_index-1), precision);
