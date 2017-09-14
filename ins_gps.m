@@ -218,11 +218,22 @@ last_imu_comp_ix = 1;    %crown add for compensation
 
 % GPS clock is the master clock
 for j = 2:Mg
-    
+    % crown add for compensation
+    if i==1
+        lat_e_last = lat_e(1); lon_e_last = lon_e(1); h_e_last = h_e(1);
+        vel_e_last = vel_e(1,:);
+    else
+        lat_e_last = lat_e(i-1); lon_e_last = lon_e(i-1); h_e_last = h_e(i-1);
+        vel_e_last = vel_e(i-1,:);
+    end
+    lat_e_now = 0; lon_e_now = 0; h_e_now = 0;
+    roll_e_now = 0; pitch_e_now = 0; yaw_e_now = 0;
+    vel_e_now = zeros(1,3);
+
     while (ti(i) <= tg(j))
-        
+
         %% INERTIAL NAVIGATION SYSTEM (INS)
-        
+
         % Print a dot on console every 10,000 INS executions
         if (mod(i,10000) == 0), fprintf('. ');  end
         % Print a return on console every 200,000 INS executions
@@ -239,38 +250,47 @@ for j = 2:Mg
         fb_corrected = (imu.fb(i,:)' + ab_fix + ab_drift );
         
         % Attitude update
-        omega_ie_N = earthrate(lat_e(i-1), precision);
-        omega_en_N = transportrate(lat_e(i-1), vel_e(i-1,1), vel_e(i-1,2), h_e(i-1));
+        omega_ie_N = earthrate(lat_e_last, precision);
+        omega_en_N = transportrate(lat_e_last, vel_e_last(1), vel_e_last(2), h_e_last);
         
         [qua_n, DCMbn_n, euler] = att_update(wb_corrected, DCMbn, qua, ...
             omega_ie_N, omega_en_N, dti, att_mode);
 %         [qua_n, DCMbn_n, euler] = my_att_update(wb_corrected, fb_corrected, DCMbn, qua, ...
 %             omega_ie_N, omega_en_N, dti, att_mode);         % crown add 6-axes fusion attitude update method
-        roll_e(i) = euler(1);
-        pitch_e(i)= euler(2);
-        yaw_e(i)  = euler(3);
+        roll_e_now = euler(1);
+        pitch_e_now= euler(2);
+        yaw_e_now  = euler(3);
         DCMbn = DCMbn_n;
         qua = qua_n;
         
         % Gravity update
-        g = gravity(lat_e(i-1), h_e(i-1));
+        g = gravity(lat_e_last, h_e_last);
         
         % Velocity update
         fn = (DCMbn_n * fb_corrected);
-        vel_n = vel_update(fn, vel_e(i-1,:), omega_ie_N, omega_en_N, g', dti); %
-        vel_e (i,:) = vel_n;
+        vel_n = vel_update(fn, vel_e_last, omega_ie_N, omega_en_N, g', dti); %
+        vel_e_now = vel_n;
         
         % Position update
-        pos = pos_update([lat_e(i-1) lon_e(i-1) double(h_e(i-1))], double(vel_e(i,:)), double(dti) );
-        lat_e(i) = pos(1);
-        lon_e(i) = pos(2);
-        h_e(i)   = pos(3);
+        pos = pos_update([lat_e_last lon_e_last double(h_e_last)], double(vel_e_last), double(dti) );
+        lat_e_now = pos(1);
+        lon_e_now = pos(2);
+        h_e_now   = pos(3);
         
         % Magnetic heading update
         %  yawm_e(i) = hd_update (imu.mb(i,:), roll_e(i),  pitch_e(i), D);
         
+        % crown add for compensation
+        lat_e_last = lat_e_now; lon_e_last = lon_e_now; h_e_last = h_e_now;
+        vel_e_last = vel_e_now;
+
     end
-    
+
+    % crown add for compensation
+    roll_e(i) = roll_e_now; pitch_e(i) = pitch_e_now; yaw_e(i) = yaw_e_now;
+    lat_e(i) = lat_e_now; lon_e(i) = lon_e_now; h_e(i) = h_e_now;
+    vel_e(i,:) = vel_e_now;
+
     %% INNOVATIONS
     
     [RM,RN] = radius(lat_e(i), precision);
@@ -365,7 +385,7 @@ for j = 2:Mg
         %% INERTIAL NAVIGATION SYSTEM (INS)
         
         % Print a dot on console every 10,000 INS executions
-        if (mod(calc_index,10000) == 0), fprintf('. ');  end
+        if (mod(calc_index,10000) == 0), fprintf('* ');  end
         % Print a return on console every 200,000 INS executions
         if (mod(calc_index,200000) == 0), fprintf('\n'); end
         
