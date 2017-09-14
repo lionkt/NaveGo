@@ -236,8 +236,10 @@ if strcmp(IMU1_INS, 'ON')
     end
     
     % Execute INS/GPS integration
+    err_arclen = [];
+    err_arclen_now = [];
     % ---------------------------------------------------------------------
-    [imu1_e] = ins_gps(xsens_imu, gps1, 'quaternion', 'double');
+    [imu1_e, err_arclen, err_arclen_now] = ins_gps(xsens_imu, gps1, 'quaternion', 'double', err_arclen, err_arclen_now);
     % ---------------------------------------------------------------------
     
     save imu1_e.mat imu1_e
@@ -512,5 +514,11 @@ if (strcmp(PLOT,'ON'))
     ylabel('[m]')
     legend('GPS', 'IMU1', '3\sigma');
     title('ALTITUDE ERROR');
+    
+    figure;
+    plot(err_arclen);
+    hold on;
+    plot(err_arclen_now);
+    title('根据gps到来后的kalman估计值，分段补偿的结果');ylabel('[m]');legend('before compensation','after compensation');
     
 end

@@ -1,4 +1,4 @@
-function [ins_gps_e] = ins_gps(imu, gps, att_mode, precision)
+function [ins_gps_e, err_arclen, err_arclen_now] = ins_gps(imu, gps, att_mode, precision, err_arclen, err_arclen_now)
 % ins_gps: loosely-coupled integrated navigation system. 
 %
 % ins_gps integrates IMU and GPS measurements by using an Extended Kalman filter.
@@ -91,6 +91,8 @@ function [ins_gps_e] = ins_gps(imu, gps, att_mode, precision)
 % Date:    2017/05/10
 % Author:  Rodrigo Gonzalez <rodralez@frm.utn.edu.ar>
 % URL:     https://github.com/rodralez/navego
+
+debug_mode_flag = false;
 
 if nargin < 3, att_mode  = 'quaternion'; end
 if nargin < 4, precision = 'double'; end
@@ -425,18 +427,20 @@ for j = 2:Mg
     
     %%%%% crown add, 开始根据kalman滤波得到的新imu_e补偿前一段的imu_e数据
     T_comp = ti(i)-ti(last_imu_comp_ix);    % 计算compensation周期长度
-    delta_T_comp = T_comp/(i-1-last_imu_comp_ix); %小时间段的长度
-    [arclen,az] = distance(lat_e_last,lon_e_last,lat_e(i),lon_e(i),referenceEllipsoid('wgs84'));   %目前只补偿N、E向
+    delta_T_comp = T_comp/(i-last_imu_comp_ix); %小时间段的长度
+    [arclen,az] = distance(rad2deg(lat_e_now),rad2deg(lon_e_now),rad2deg(lat_e(i)),rad2deg(lon_e(i)),referenceEllipsoid('wgs84'));   %目前只补偿N、E向
+    err_arclen = [err_arclen; arclen];
     az = deg2rad(az);   %distance输出的az是角度制，转成弧度制
     pos_err_N = arclen.*cos(az);    %北向的误差（NED坐标系）
     pos_err_E = arclen.*sin(az);    %东向的误差（NED坐标系）
     acc_comp_N = 2*pos_err_N/(T_comp^2);     % 需要补偿的N向加速度
     acc_comp_E = 2*pos_err_E/(T_comp^2);     % 需要补偿的E向加速度
     calc_index = last_imu_comp_ix;
+    
     while (calc_index < i-1)
         
-        %% INERTIAL NAVIGATION SYSTEM (INS)
-        
+       %% INERTIAL NAVIGATION SYSTEM (INS)
+       
         % Print a dot on console every 10,000 INS executions
         if (mod(calc_index,10000) == 0), fprintf('* ');  end
         % Print a return on console every 200,000 INS executions
@@ -478,7 +482,7 @@ for j = 2:Mg
         % Velocity update
         fn = (DCMbn_n * fb_corrected);
         vel_n = vel_update(fn, vel_e(calc_index-1,:), omega_ie_N, omega_en_N, g', dti); %
-        vel_n = vel_n + delta_T_comp*[acc_comp_N, acc_comp_E, 0.0];   %引入速度补偿
+        vel_n = vel_n + dti*[acc_comp_N, acc_comp_E, 0.0];   %引入速度补偿
         vel_e (calc_index,:) = vel_n;
         
         % Position update
@@ -491,6 +495,9 @@ for j = 2:Mg
         %  yawm_e(calc_index) = hd_update (imu.mb(calc_index,:), roll_e(calc_index),  pitch_e(calc_index), D);
         
     end
+    
+    [arclen,az] = distance(rad2deg(lat_e(i-1)),rad2deg(lon_e(i-1)),rad2deg(lat_e(i)),rad2deg(lon_e(i)),referenceEllipsoid('wgs84'));   %目前只补偿N、E向
+    err_arclen_now = [err_arclen_now; arclen];
     last_imu_comp_ix = i;
     
 end
