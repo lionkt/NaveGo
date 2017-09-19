@@ -239,7 +239,8 @@ if strcmp(IMU1_INS, 'ON')
     err_arclen = [];
     err_arclen_now = [];
     % ---------------------------------------------------------------------
-    [imu1_e, err_arclen, err_arclen_now] = ins_gps(xsens_imu, gps1, 'quaternion', 'double', err_arclen, err_arclen_now);
+    [imu1_e, err_arclen, err_arclen_now] = ins_gps_comp(xsens_imu, gps1, 'quaternion', 'double', err_arclen, err_arclen_now);  % crown add compensation
+%     [imu1_e] = ins_gps(xsens_imu, gps1, 'quaternion', 'double');   %原始的kalman组合导航
     % ---------------------------------------------------------------------
     
     save imu1_e.mat imu1_e
