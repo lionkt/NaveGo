@@ -22,3 +22,4 @@ Lfun31=Lfun3/(Lfun1+Lfun2+Lfun3);
 c=[Lfun11,Lfun21,Lfun31]*c_j;
 % ‘ŸπÈ“ªªØ
 u=(1/c).*[Lfun11,Lfun21,Lfun31]'.*c_j;
+end

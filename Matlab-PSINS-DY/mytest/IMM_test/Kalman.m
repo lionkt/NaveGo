@@ -36,3 +36,4 @@ M=K*H;
 n=size(M);
 I=eye(n);
 P=(I-K*H)*P_Pre*(I-K*H)'+ K*R*K';
+end

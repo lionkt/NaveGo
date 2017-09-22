@@ -1,8 +1,11 @@
 clc;
 clear all;
 %% 数据提取
-xsens_file_path = 'F:\Momenta_Intern\Data\MTi-G-710数据\4-vehicle_test\8-22-vehicle-test\';
-vehicular_file_path = 'F:\momenta文件夹\2017-8-22跑车数据\8-22车载设备数据\';
+% xsens_file_path = 'F:\Momenta_Intern\Data\MTi-G-710数据\4-vehicle_test\8-22-vehicle-test\';
+% vehicular_file_path = 'F:\momenta文件夹\2017-8-22跑车数据\8-22车载设备数据\';
+xsens_file_path = 'D:\crown\Momenta_Intern\Data\MTi-G-710数据\4-vehicle_test\8-22-vehicle-test\';
+vehicular_file_path = 'D:\crown\momenta文件夹\2017-8-22跑车数据\8-22车载设备数据\';
+
 %%%%%%%%%%%%%%%%%%%%%% xsens数据的提取 %%%%%%%%%%%%%%%%%%%%%
 xsens_file_name = 'MT_2017-08-22-20h32-000';
 fileID=fopen([xsens_file_path, xsens_file_name,'.txt']);
@@ -94,7 +97,7 @@ good_imu_accZ = good_imu_data{7};
 fclose(fileID);
 
 %% 数据存储、插值处理控制字段
-single_gps_data_mode = 0; % 0-使用single_gps数据作为single_gps，1-使用rtk产生的“虚假”的single_gps，2-使用laneto数据作为single_gps，3-使用xsens自带的gps解算的位置
+single_gps_data_mode = 1; % 0-使用single_gps数据作为single_gps，1-使用rtk产生的“虚假”的single_gps，2-使用laneto数据作为single_gps，3-使用xsens自带的gps解算的位置
 abstract_some_gps_data_flag = false;    % 剔除部分低精度gps数据，测试动态标定的效果
 use_interploation_to_single_gps = false; % 对低精度gps进行插值处理，提高低精度gps的数据频率
 use_single_gps_Z_vel = false;           % 将低精度gps的z轴速度引入kalman（目前测试结果是引入后反而不好）
@@ -169,7 +172,7 @@ else
     disp('=== laneto不引入gpsZ轴速度约束 ===');
 end
 
-%% 数据保存，方便主程序调用
+%% 数据保存，方便Navego主程序调用
 ENU2NED = NED2ENU^-1;
 %%%%%%%%%%%%%%% 车载rtk数据作为参考 %%%%%%%%%%%%%%%
 % 保存为Navego的形式，速度为NED
