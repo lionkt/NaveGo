@@ -104,57 +104,58 @@ position(1,1)=0;
 position_3d(1,1) = 0;   % crown add for 3d
 
 %%%% 2d姿态更新
-for i=1:1:len-2
-    T=t(i+1)-t(i);
-    if abs(L(i)-R(i))<0.0000000001
-        altitude(i+1,1)=altitude(i,1);
-        altitude(i+1,2)=altitude(i,2);
-        position(i+1,1)=position(i,1)+(L(i)+R(i))/2*T*cos(altitude(i));
-        position(i+1,2)=position(i,2)+(L(i)+R(i))/2*T*sin(altitude(i));
-    elseif (L(i)-R(i))>0.0000000001
-
-        %seta=(L(i)*T-R(i)*T)/tiredis;
-        seta = (HPR(i+1,1) - HPR(i,1))*3.1415926/180;
-        altitude(i+1,1)=altitude(i,1)+seta;
-
-        r=R(i)*T/(seta+1e-6);
-        x=position(i,1);
-        y=position(i,2);
-        x0=x+(r+tiredis/2)*sin(altitude(i,1));
-        y0=y-(r+tiredis/2)*cos(altitude(i,1));
-        position(i+1,1)=(x-x0)*cos(seta)+(y-y0)*sin(seta)+x0;
-        position(i+1,2)=(y-y0)*cos(seta)-(x-x0)*sin(seta)+y0;
-    else
-        %seta=(L(i)*T-R(i)*T)/tiredis;
-        seta = (HPR(i+1,1) - HPR(i,1))*3.1415926/180;
-        altitude(i+1,1)=altitude(i,1)+seta;
-
-        r=L(i)*T/(seta+1e-6);
-        x=position(i,1);
-        y=position(i,2);
-        x0=x+(r+tiredis/2)*sin(altitude(i,1));
-        y0=y-(r+tiredis/2)*cos(altitude(i,1));
-        position(i+1,1)=(x-x0)*cos(seta)+(y-y0)*sin(seta)+x0;
-        position(i+1,2)=(y-y0)*cos(seta)-(x-x0)*sin(seta)+y0;
-    end
-end
+% for i=1:1:len-2
+%     T=t(i+1)-t(i);
+%     if abs(L(i)-R(i))<0.0000000001
+%         altitude(i+1,1)=altitude(i,1);
+%         altitude(i+1,2)=altitude(i,2);
+%         position(i+1,1)=position(i,1)+(L(i)+R(i))/2*T*cos(altitude(i));
+%         position(i+1,2)=position(i,2)+(L(i)+R(i))/2*T*sin(altitude(i));
+%     elseif (L(i)-R(i))>0.0000000001
+% 
+%         %seta=(L(i)*T-R(i)*T)/tiredis;
+%         seta = (HPR(i+1,1) - HPR(i,1))*3.1415926/180;
+%         altitude(i+1,1)=altitude(i,1)+seta;
+% 
+%         r=R(i)*T/(seta+1e-6);
+%         x=position(i,1);
+%         y=position(i,2);
+%         x0=x+(r+tiredis/2)*sin(altitude(i,1));
+%         y0=y-(r+tiredis/2)*cos(altitude(i,1));
+%         position(i+1,1)=(x-x0)*cos(seta)+(y-y0)*sin(seta)+x0;
+%         position(i+1,2)=(y-y0)*cos(seta)-(x-x0)*sin(seta)+y0;
+%     else
+%         %seta=(L(i)*T-R(i)*T)/tiredis;
+%         seta = (HPR(i+1,1) - HPR(i,1))*3.1415926/180;
+%         altitude(i+1,1)=altitude(i,1)+seta;
+% 
+%         r=L(i)*T/(seta+1e-6);
+%         x=position(i,1);
+%         y=position(i,2);
+%         x0=x+(r+tiredis/2)*sin(altitude(i,1));
+%         y0=y-(r+tiredis/2)*cos(altitude(i,1));
+%         position(i+1,1)=(x-x0)*cos(seta)+(y-y0)*sin(seta)+x0;
+%         position(i+1,2)=(y-y0)*cos(seta)-(x-x0)*sin(seta)+y0;
+%     end
+% end
 
 %%%% 3d姿态更新
 %%% 强约束：Vb = Vb_y
 %%% 强约束：左轮、右轮的方向近似一样，只是转速不一样
 for i=1:1:len-2
     T=t(i+1)-t(i);
-    Cnb = angle2dcm(deg2rad(HPR(i,3)),deg2rad(HPR(i,2)),deg2rad(HPR(i,1)+90),'YXZ');  %按照roll、pitch、heading的顺序沿着y、x、z的顺序转
-    % 如果不对的话，试试Cnb = angle2dcm(-deg2rad(HPR(i,3)),-deg2rad(HPR(i,2)),-deg2rad(HPR(i,1)+90),'XYZ');
+%     Cnb = angle2dcm(-deg2rad(HPR(i,3)),-deg2rad(HPR(i,2)),-deg2rad(HPR(i,1)+90),'YXZ');  %按照roll、pitch、heading的顺序沿着y、x、z的顺序转
+    Cnb = angle2dcm(-deg2rad(HPR(i,3)),-deg2rad(HPR(i,2)),-deg2rad(HPR(i,1)+90),'YXZ');
     Cbn = Cnb^-1;
-    Cnb_n = angle2dcm(deg2rad(HPR(i+1,3)),deg2rad(HPR(i+1,2)),deg2rad(HPR(i+1,1)+90),'YXZ');
+%     Cnb_n = angle2dcm(-deg2rad(HPR(i+1,3)),-deg2rad(HPR(i+1,2)),-deg2rad(HPR(i+1,1)+90),'YXZ');
+    Cnb_n = angle2dcm(-deg2rad(HPR(i+1,3)),-deg2rad(HPR(i+1,2)),-deg2rad(HPR(i+1,1)+90),'YXZ');
     Cbn_n = Cnb_n^-1;
     v1_dir = Cbn(:,2);   %此时刻的车辆合速度方向
     v2_dir = Cbn_n(:,2); %下一时刻的车辆合速度方向
     if abs(L(i)-R(i))<0.0000000001   %如果直行
         %        altitude_3d(i+1,:) = altitude_3d(i,:);
         v_norm = (L(i)+R(i))/2; %速度的模
-        position_3d(i+1,:) = (v_norm*v1_dir*T/norm(v1_dir))' + position_3d(i,:);  %沿原来的方向前进
+        position_3d(i+1,:) = (v_norm*T *v1_dir/norm(v1_dir))' + position_3d(i,:);  %沿原来的方向前进
     else    % 如果车辆进行转向
         rot_axes_in_N = cross(v1_dir, v2_dir);   %车辆转向的旋转轴
         theta = acos(dot(v1_dir,v2_dir)/(norm(v1_dir)*norm(v2_dir)));  % arccos的取值范围是0~pi
@@ -167,7 +168,7 @@ for i=1:1:len-2
             p0_N = p1_N + r_real*(a_dir(:))';    % 旋转中心的坐标
             % 以p0为中心，p1-p0为x轴，p0+rot_n为Z轴的坐标系下的P2，转到N系下
             rot_X_axes_in_N = (p1_N-p0_N)/norm(p1_N-p0_N);   % 旋转系的X轴在N系下的表示，要单位化
-            rot_Z_axes_in_N = p0_N + (rot_axes_in_N(:))';    % 旋转系的Z轴在N系下的表示，要单位化
+            rot_Z_axes_in_N = (rot_axes_in_N(:))';    % 旋转系的Z轴在N系下的表示，要单位化
             rot_Z_axes_in_N = rot_Z_axes_in_N/norm(rot_Z_axes_in_N);
             rot_Y_axes_in_N = cross(rot_Z_axes_in_N, rot_X_axes_in_N);   % 旋转系的Y轴在N系下的表示，要单位化
             C_rot_N = [rot_X_axes_in_N(:), rot_Y_axes_in_N(:), rot_Z_axes_in_N(:)];
@@ -184,7 +185,7 @@ for i=1:1:len-2
             p0_N = p1_N + r_real*(a_dir(:))';    % 旋转中心的坐标
             % 以p0为中心，p1-p0为x轴，p0+rot_n为Z轴的坐标系下的P2，转到N系下
             rot_X_axes_in_N = (p1_N-p0_N)/norm(p1_N-p0_N);   % 旋转系的X轴在N系下的表示，要单位化
-            rot_Z_axes_in_N = p0_N + (rot_axes_in_N(:))';    % 旋转系的Z轴在N系下的表示，要单位化
+            rot_Z_axes_in_N = (rot_axes_in_N(:))';    % 旋转系的Z轴在N系下的表示，要单位化
             rot_Z_axes_in_N = rot_Z_axes_in_N/norm(rot_Z_axes_in_N);
             rot_Y_axes_in_N = cross(rot_Z_axes_in_N, rot_X_axes_in_N);   % 旋转系的Y轴在N系下的表示，要单位化
             C_rot_N = [rot_X_axes_in_N(:), rot_Y_axes_in_N(:), rot_Z_axes_in_N(:)];
