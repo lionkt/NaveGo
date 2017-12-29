@@ -3,8 +3,8 @@ clear all;
 %% 数据提取
 % xsens_file_path = 'F:\Momenta_Intern\Data\MTi-G-710数据\4-vehicle_test\8-22-vehicle-test\';
 % vehicular_file_path = 'F:\momenta文件夹\2017-8-22跑车数据\8-22车载设备数据\';
-xsens_file_path = 'D:\crown\Momenta_Intern\Data\MTi-G-710数据\4-vehicle_test\8-22-vehicle-test\';
-vehicular_file_path = 'D:\crown\momenta文件夹\2017-8-22跑车数据\8-22车载设备数据\';
+xsens_file_path = 'G:\Momenta_Intern\Data\MTi-G-710数据\4-vehicle_test\8-22-vehicle-test\';
+vehicular_file_path = 'G:\momenta文件夹\2017-8-22跑车数据\8-22车载设备数据\';
 %%%%%%%%%%%%%%%%%%%%%% xsens数据的提取 %%%%%%%%%%%%%%%%%%%%%
 xsens_file_name = 'MT_2017-08-22-20h32-000';
 fileID=fopen([xsens_file_path, xsens_file_name,'.txt']);
