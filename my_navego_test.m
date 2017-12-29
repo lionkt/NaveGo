@@ -284,12 +284,15 @@ if (strcmp(PLOT,'ON'))
     
     % TRAJECTORY
     figure;
-    plot3(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D, ref_rtk.h)
+    plot3(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D, ref_rtk.h,'linewidth',1.5)
     hold on
     plot3(imu1_e.lon.*R2D, imu1_e.lat.*R2D, imu1_e.h,'.')    
-    legend('ref','imu estimation');
+    hold on;
+    plot3(gps1.lon.*R2D, gps1.lat.*R2D, gps1.h,'.')  % plot xsens original pos
+    
     plot3(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, ref_rtk.h(1), 'or', 'MarkerSize', 10, 'LineWidth', 2)
-    plot3(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, imu1_e.h(1), 'or', 'MarkerSize', 10, 'LineWidth', 2)
+    plot3(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, imu1_e.h(1), 'og', 'MarkerSize', 10, 'LineWidth', 2)
+    legend('Ground truth','imu+GPS estimation','single GPS','ref-start','Kalman-start');
     axis tight
     grid on; 
     title('TRAJECTORY')
@@ -303,14 +306,14 @@ if (strcmp(PLOT,'ON'))
     mstruct.origin = [39.999374 116.340673 41];
     mstruct = defaultm(mstruct);
     [xxx,yyy] = mfwdtran(mstruct,ref_rtk.lat,ref_rtk.lon);
-    plot(xxx, yyy)
+    plot(xxx, yyy,'linewidth',1.5)
 %     plot(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D)
     hold on
     [xxx,yyy] = mfwdtran(mstruct,imu1_e.lat,imu1_e.lon);
-    plot(xxx, yyy,'.')
+    plot(xxx, yyy,'linewidth',1.5)
 %     plot(imu1_e.lon.*R2D, imu1_e.lat.*R2D,'.')
     [xxx,yyy] = mfwdtran(mstruct,single_gps.lat,single_gps.lon);
-    plot(xxx, yyy,'o')
+    plot(xxx, yyy,'o','linewidth',1.5)
 %     plot(single_gps.lon.*R2D,single_gps.lat.*R2D,'o');
     %%%%%%% 在gps信号到来的位置，加入速度偏置修正，防止imu被gps拉的不连续 %%%%%%%
     IXX = find_nears_time(imu1_e.t, single_gps.t);
@@ -328,9 +331,39 @@ if (strcmp(PLOT,'ON'))
     axis tight
     axis equal
     grid on; 
-    title('TRAJECTORY')
-    xlabel('x-axis')
-    ylabel('y-axis')
+    title('2D Trajectory')
+    xlabel('相对经度 (弧度制)')
+    ylabel('相对纬度 (弧度制)')
+    
+    
+    % simple 2D-TRAJECTORY
+    figure;
+    mstruct = defaultm('mercator');
+    mstruct.origin = [39.999374 116.340673 41];
+    mstruct = defaultm(mstruct);
+    [xxx,yyy] = mfwdtran(mstruct,ref_rtk.lat,ref_rtk.lon);
+    plot(xxx, yyy,'linewidth',1.5)
+%     plot(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D)
+    hold on
+    [xxx,yyy] = mfwdtran(mstruct,imu1_e.lat,imu1_e.lon);
+    plot(xxx, yyy,'linewidth',1.5)
+%     plot(imu1_e.lon.*R2D, imu1_e.lat.*R2D,'.')
+    [xxx,yyy] = mfwdtran(mstruct,single_gps.lat,single_gps.lon);
+%     plot(xxx, yyy,'o','linewidth',1.5)
+    plot(xxx, yyy,'linewidth',1.5)
+
+    [xxx,yyy] = mfwdtran(mstruct,ref_rtk.lat(1),ref_rtk.lon(1));
+    plot(xxx, yyy, 'or', 'MarkerSize', 10, 'LineWidth', 2)
+    [xxx,yyy] = mfwdtran(mstruct,imu1_e.lat(1),imu1_e.lon(1));
+    plot(xxx, yyy, 'og', 'MarkerSize', 10, 'LineWidth', 2)
+    legend('ref','Kalman estimation','GPS','ref start','Kalman start');
+
+    axis tight
+    axis equal
+    grid on; 
+    title('simple 2D Trajectory')
+    xlabel('相对经度 (弧度制)')
+    ylabel('相对纬度 (弧度制)')
     
     
     % ATTITUDE

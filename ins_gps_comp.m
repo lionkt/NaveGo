@@ -232,7 +232,9 @@ for j = 2:Mg
         %% INERTIAL NAVIGATION SYSTEM (INS)
 
         % Print a dot on console every 10,000 INS executions
-        if (mod(i,10000) == 0), fprintf('. ');  end
+        if (mod(i,10000) == 0)
+            fprintf('. '); 
+        end
         % Print a return on console every 200,000 INS executions
         if (mod(i,200000) == 0), fprintf('\n'); end
         
@@ -442,7 +444,9 @@ for j = 2:Mg
        %% INERTIAL NAVIGATION SYSTEM (INS)
        
         % Print a dot on console every 10,000 INS executions
-        if (mod(calc_index,10000) == 0), fprintf('* ');  end
+        if (mod(calc_index,10000) == 0)
+            fprintf('* ');  
+        end
         % Print a return on console every 200,000 INS executions
         if (mod(calc_index,200000) == 0), fprintf('\n'); end
         

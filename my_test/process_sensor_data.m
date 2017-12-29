@@ -96,7 +96,7 @@ good_imu_accZ = good_imu_data{7};
 fclose(fileID);
 
 %% 数据存储、插值处理控制字段
-single_gps_data_mode = 0; % 0-使用single_gps数据作为single_gps，1-使用rtk产生的“虚假”的single_gps，2-使用laneto数据作为single_gps，3-使用xsens自带的gps解算的位置
+single_gps_data_mode = 1; % 0-使用single_gps数据作为single_gps，1-使用rtk产生的“虚假”的single_gps，2-使用laneto数据作为single_gps，3-使用xsens自带的gps解算的位置
 abstract_some_gps_data_flag = false;    % 剔除部分低精度gps数据，测试动态标定的效果
 use_interploation_to_single_gps = true; % 对低精度gps进行插值处理，提高低精度gps的数据频率
 use_single_gps_Z_vel = false;           % 将低精度gps的z轴速度引入kalman（目前测试结果是引入后反而不好）
@@ -350,11 +350,11 @@ title('y-axis free-acc');legend('rtk','xsens free','xsens raw');
 %%%%%%%% 绘制位置数据 %%%%%%%%
 figure;
 subplot(211);
-plot(single_gps_lat,single_gps_lon); 
+plot(single_gps_lat,single_gps_lon,'.'); 
 hold on;
-plot(xsens_lat,xsens_lon);
+plot(xsens_lat,xsens_lon,'.');
 % plot(xsens_pos_by_vel(:,1),xsens_pos_by_vel(:,2));
-title('location');legend('single-gps','navego:xsens+gps');
+title('location');legend('single-gps','xsens+gps');
 
 %%%%%%%% 绘制传送给Navego 的数据 %%%%%%%%
 figure;
