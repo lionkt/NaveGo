@@ -276,13 +276,27 @@ imu_e_att_for_save = [imu1_e.roll, imu1_e.pitch, imu1_e.yaw];
 save('./calculation_data/imu_e_time','imu_e_time_for_save');
 save('./calculation_data/imu_e_att','imu_e_att_for_save');
 
+%% 校正GPS
+correction_val = 15;
+imu1_e.h = imu1_e.h-correction_val;
+gps1.h = gps1.h-correction_val;
+% gps1.t = gps1.t(1:2:end);
+% gps1.lon = gps1.lon(1:2:end);
+% gps1.lat = gps1.lat(1:2:end);
+% gps1.h = gps1.h(1:2:end);
+    
 %% PLOT
 
 if (strcmp(PLOT,'ON'))
     
     sig3_rr = abs(imu1_e.Pp(:, 1:22:end).^(0.5)) .* 3; % Only take diagonal elements from Pp
     
-    % TRAJECTORY
+    % TRAJECTORY   
+%     angle = pi/24;
+%     rot_mat = [1,0,0; 0, cos(angle),sin(angle); 0,-sin(angle),cos(angle)];
+%     temp_mat = [zeros(length(ref_rtk.h),1),zeros(length(ref_rtk.h),1),ref_rtk.h]*rot_mat;
+%     ref_rtk.h = temp_mat(:,3);
+    
     figure;
     plot3(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D, ref_rtk.h,'linewidth',1.5)
     hold on
@@ -292,7 +306,7 @@ if (strcmp(PLOT,'ON'))
     
     plot3(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, ref_rtk.h(1), 'or', 'MarkerSize', 10, 'LineWidth', 2)
     plot3(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, imu1_e.h(1), 'og', 'MarkerSize', 10, 'LineWidth', 2)
-    legend('Ground truth','imu+GPS estimation','single GPS','ref-start','Kalman-start');
+    legend('Ground truth','imu(100hz)+GPS(1hz) Kalman','1hz GPS observation','truth start','Kalman start');
     axis tight
     grid on; 
     title('TRAJECTORY')
@@ -357,7 +371,6 @@ if (strcmp(PLOT,'ON'))
     [xxx,yyy] = mfwdtran(mstruct,imu1_e.lat(1),imu1_e.lon(1));
     plot(xxx, yyy, 'og', 'MarkerSize', 10, 'LineWidth', 2)
     legend('ref','Kalman estimation','GPS','ref start','Kalman start');
-
     axis tight
     axis equal
     grid on; 
@@ -365,6 +378,23 @@ if (strcmp(PLOT,'ON'))
     xlabel('相对经度 (弧度制)')
     ylabel('相对纬度 (弧度制)')
     
+    % plot simple 2D
+    figure;
+    plot(ref_rtk.lon.*R2D, ref_rtk.lat.*R2D, 'linewidth',1.5);
+    hold on;
+    plot(imu1_e.lon.*R2D, imu1_e.lat.*R2D,'.')    
+    hold on;
+    plot(gps1.lon.*R2D, gps1.lat.*R2D,'*')  % plot xsens original pos
+    plot(ref_rtk.lon(1).*R2D, ref_rtk.lat(1).*R2D, 'or', 'MarkerSize', 10, 'LineWidth', 2)
+    plot(imu1_e.lon(1).*R2D, imu1_e.lat(1).*R2D, 'og', 'MarkerSize', 10, 'LineWidth', 2)
+    legend('Ground truth','imu+GPS estimation','low-cost GPS','truth-start','Kalman-start');
+    axis tight
+%     axis equal
+    grid on; 
+    title('TRAJECTORY')
+    xlabel('Longitude [deg.]')
+    ylabel('Latitude [deg.]')
+
     
     % ATTITUDE
     figure;
@@ -479,24 +509,24 @@ if (strcmp(PLOT,'ON'))
     % POSITION
     figure;
     subplot(311)
-    plot(ref_rtk.t, ref_rtk.lat .*R2D, '--k', gps1.t, gps1.lat.*R2D, '-c', imu1_e.t, imu1_e.lat.*R2D, '-b');
+    plot(ref_rtk.t, ref_rtk.lat .*R2D, '--k', gps1.t, gps1.lat.*R2D, '-r', imu1_e.t, imu1_e.lat.*R2D, '-b');
     xlabel('Time [s]')
     ylabel('[deg]')
-    legend('REF', 'GPS', 'IMU1');
+    legend('REF', 'GPS', 'IMU+GPS');
     title('LATITUDE');
     
     subplot(312)
-    plot(ref_rtk.t, ref_rtk.lon .*R2D, '--k', gps1.t, gps1.lon.*R2D, '-c', imu1_e.t, imu1_e.lon.*R2D, '-b');
+    plot(ref_rtk.t, ref_rtk.lon .*R2D, '--k', gps1.t, gps1.lon.*R2D, '-r', imu1_e.t, imu1_e.lon.*R2D, '-b');
     xlabel('Time [s]')
     ylabel('[deg]')
-    legend('REF', 'GPS', 'IMU1');
+    legend('REF', 'GPS', 'IMU+GPS');
     title('LONGITUDE');
     
     subplot(313)
-    plot(ref_rtk.t, ref_rtk.h, '--k', gps1.t, gps1.h, '-c', imu1_e.t, imu1_e.h, '-b');
+    plot(ref_rtk.t, ref_rtk.h, '--k', gps1.t, gps1.h, '-r', imu1_e.t, imu1_e.h, '-b');
     xlabel('Time [s]')
     ylabel('[m]')
-    legend('REF', 'GPS', 'IMU1');
+    legend('REF', 'GPS', 'IMU+GPS');
     title('ALTITUDE');
     
     % POSITION ERRORS
